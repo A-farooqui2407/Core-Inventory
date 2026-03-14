@@ -27,17 +27,21 @@ export default function Receipts() {
   }, []);
 
   useEffect(() => {
-    setLoading(true);
+    let cancelled = false;
+    queueMicrotask(() => setLoading(true));
     const params = { page, limit };
     if (statusFilter) params.status = statusFilter;
     receiptsApi
       .list(params)
       .then((data) => {
-        setItems(data.data?.items ?? []);
-        setTotal(data.data?.total ?? 0);
+        if (!cancelled) {
+          setItems(data.data?.items ?? []);
+          setTotal(data.data?.total ?? 0);
+        }
       })
-      .catch((err) => setError(err.message))
-      .finally(() => setLoading(false));
+      .catch((err) => { if (!cancelled) setError(err.message); })
+      .finally(() => { if (!cancelled) setLoading(false); });
+    return () => { cancelled = true; };
   }, [page, statusFilter, refreshKey]);
 
   const openCreate = () => {

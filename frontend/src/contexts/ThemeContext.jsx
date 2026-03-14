@@ -39,7 +39,7 @@ export function ThemeProvider({ children }) {
     try {
       if (next) localStorage.setItem(STORAGE_KEY, next);
       else localStorage.removeItem(STORAGE_KEY);
-    } catch (_) {}
+    } catch { /* ignore */ }
   };
 
   return (
@@ -49,6 +49,7 @@ export function ThemeProvider({ children }) {
   );
 }
 
+// eslint-disable-next-line react-refresh/only-export-components -- hook, not a component
 export function useTheme() {
   const ctx = useContext(ThemeContext);
   if (!ctx) throw new Error('useTheme must be used within ThemeProvider');
