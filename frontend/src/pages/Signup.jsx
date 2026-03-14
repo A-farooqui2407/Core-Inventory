@@ -1,10 +1,12 @@
 import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
+import { useToast } from '@/contexts/ToastContext';
 import { authApi } from '@/services/api';
 
 export default function Signup() {
   const { login } = useAuth();
+  const { addToast } = useToast();
   const navigate = useNavigate();
   const [username, setUsername] = useState('');
   const [email, setEmail] = useState('');
@@ -36,9 +38,11 @@ export default function Signup() {
     }
     setLoading(true);
     authApi.signup(username.trim(), password, email.trim()).then((data) => {
+      addToast('Account created successfully', 'success');
       login(data.data?.token);
       navigate('/', { replace: true });
     }).catch((err) => {
+      addToast('Something went wrong, please try again', 'error');
       setError(err.message || 'Sign up failed');
       setLoading(false);
     });

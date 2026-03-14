@@ -1,7 +1,9 @@
 import { useState, useEffect } from 'react';
 import { suppliersApi } from '@/services/api';
+import { useToast } from '@/contexts/ToastContext';
 
 export default function Suppliers() {
+  const { addToast } = useToast();
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -48,9 +50,9 @@ export default function Suppliers() {
     }
     const body = { name: form.name.trim(), code: form.code.trim(), contact: contactNormalized || null, address: form.address?.trim() || null };
     if (editing) {
-      suppliersApi.update(editing.id, body).then(() => { setFormOpen(false); suppliersApi.list().then((d) => setItems(d.data?.items ?? [])); }).catch((err) => setError(err.message));
+      suppliersApi.update(editing.id, body).then(() => { addToast('Supplier updated successfully', 'success'); setFormOpen(false); suppliersApi.list().then((d) => setItems(d.data?.items ?? [])); }).catch(() => addToast('Failed to update supplier', 'error'));
     } else {
-      suppliersApi.create(body).then(() => { setFormOpen(false); suppliersApi.list().then((d) => setItems(d.data?.items ?? [])); }).catch((err) => setError(err.message));
+      suppliersApi.create(body).then(() => { addToast('Supplier added successfully', 'success'); setFormOpen(false); suppliersApi.list().then((d) => setItems(d.data?.items ?? [])); }).catch(() => addToast('Failed to create supplier', 'error'));
     }
   };
 

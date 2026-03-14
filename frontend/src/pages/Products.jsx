@@ -1,7 +1,9 @@
 import { useState, useEffect } from 'react';
 import { productsApi, categoriesApi } from '@/services/api';
+import { useToast } from '@/contexts/ToastContext';
 
 export default function Products() {
+  const { addToast } = useToast();
   const [items, setItems] = useState([]);
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
@@ -94,14 +96,14 @@ export default function Products() {
       reorder_quantity: form.reorder_quantity !== '' ? parseFloat(form.reorder_quantity) : null,
     };
     if (editing) {
-      productsApi.update(editing.id, body).then(() => { setFormOpen(false); load(); });
+      productsApi.update(editing.id, body).then(() => { addToast('Product updated successfully', 'success'); setFormOpen(false); load(); }).catch(() => addToast('Failed to update product', 'error'));
     } else {
-      productsApi.create(body).then(() => { setFormOpen(false); load(); });
+      productsApi.create(body).then(() => { addToast('Product created successfully', 'success'); setFormOpen(false); load(); }).catch(() => addToast('Failed to create product', 'error'));
     }
   };
 
   const handleDelete = (id) => {
-    productsApi.delete(id).then(() => { setDeleteConfirm(null); load(); }).catch((err) => setError(err.message));
+    productsApi.delete(id).then(() => { addToast('Product deleted successfully', 'success'); setDeleteConfirm(null); load(); }).catch(() => addToast('Failed to delete product', 'error'));
   };
 
   return (

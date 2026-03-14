@@ -1,9 +1,11 @@
 import { useState, useEffect } from 'react';
 import { deliveriesApi, productsApi, locationsApi } from '@/services/api';
+import { useToast } from '@/contexts/ToastContext';
 
 const STATUSES = ['draft', 'waiting', 'ready', 'done', 'canceled'];
 
 export default function Deliveries() {
+  const { addToast } = useToast();
   const [items, setItems] = useState([]);
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
@@ -85,9 +87,9 @@ export default function Deliveries() {
     }));
     const body = { reference: form.reference || null, notes: form.notes || null, lines };
     if (editing) {
-      deliveriesApi.update(editing.id, body).then(() => { setFormOpen(false); setRefreshKey((k) => k + 1); }).catch((err) => setError(err.message));
+      deliveriesApi.update(editing.id, body).then(() => { addToast('Delivery order updated successfully', 'success'); setFormOpen(false); setRefreshKey((k) => k + 1); }).catch(() => addToast('Failed to update delivery', 'error'));
     } else {
-      deliveriesApi.create(body).then(() => { setFormOpen(false); setRefreshKey((k) => k + 1); }).catch((err) => setError(err.message));
+      deliveriesApi.create(body).then(() => { addToast('Delivery order created successfully', 'success'); setFormOpen(false); setRefreshKey((k) => k + 1); }).catch(() => addToast('Failed to create delivery', 'error'));
     }
   };
 

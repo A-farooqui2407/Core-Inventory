@@ -1,9 +1,11 @@
 import { useState, useEffect } from 'react';
 import { movementsApi, productsApi, locationsApi } from '@/services/api';
+import { useToast } from '@/contexts/ToastContext';
 
 const TYPES = ['Receipt', 'Delivery', 'Transfer', 'Adjustment'];
 
 export default function Movements() {
+  const { addToast } = useToast();
   const [items, setItems] = useState([]);
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
@@ -101,7 +103,7 @@ export default function Movements() {
       reference: form.reference?.trim() || null,
       notes: form.notes?.trim() || null,
     };
-    movementsApi.create(body).then(() => { setFormOpen(false); load(); }).catch((err) => setError(err.message));
+    movementsApi.create(body).then(() => { addToast('Stock movement recorded successfully', 'success'); setFormOpen(false); load(); }).catch((err) => { setError(err.message); addToast('Failed to record stock movement', 'error'); });
   };
 
   return (
