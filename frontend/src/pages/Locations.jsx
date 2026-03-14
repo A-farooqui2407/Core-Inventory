@@ -72,7 +72,7 @@ export default function Locations() {
     if (editing) {
       locationsApi.update(editing.id, { name: body.name, code: body.code, parent_id: body.parent_id }).then(() => { setFormOpen(false); load(); });
     } else {
-      locationsApi.create(body).then(() => { setFormOpen(false); load(); });
+      locationsApi.create(body).then(() => { setFormOpen(false); load(); }).catch((err) => setError(err.message));
     }
   };
 

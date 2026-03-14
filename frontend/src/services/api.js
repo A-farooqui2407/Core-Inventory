@@ -26,8 +26,26 @@ api.interceptors.request.use((config) => {
 
 api.interceptors.response.use(
   (res) => res.data,
-  (err) => {
+  async (err) => {
     if (err.response?.status === 401) {
+      const isRefreshRequest = err.config?.url?.includes('/auth/refresh');
+      const currentToken = getStoredToken();
+      if (!isRefreshRequest && currentToken) {
+        try {
+          const { data } = await axios.post(
+            (import.meta.env.VITE_API_URL || '/api') + '/auth/refresh',
+            { token: currentToken },
+            { headers: { 'Content-Type': 'application/json' } }
+          );
+          const newToken = data?.data?.token;
+          if (newToken) {
+            setStoredToken(newToken);
+            window.dispatchEvent(new CustomEvent('auth:refresh', { detail: { token: newToken } }));
+            err.config.headers.Authorization = `Bearer ${newToken}`;
+            return api.request(err.config);
+          }
+        } catch { /* refresh failed, fall through to clear and reject */ }
+      }
       setStoredToken(null);
       window.dispatchEvent(new CustomEvent('auth:401'));
       const e = new Error(err.response?.data?.error?.message || 'Unauthorized');
@@ -44,8 +62,9 @@ api.interceptors.response.use(
 
 export const authApi = {
   status: () => api.get('/auth/status'),
+  me: () => api.get('/auth/me'),
   login: (username, password) => api.post('/auth/login', { username, password }),
-  signup: (username, password) => api.post('/auth/signup', { username, password }),
+  signup: (username, password, email) => api.post('/auth/signup', { username, password, email }),
   forgotPassword: (username) => api.post('/auth/forgot-password', { username }),
   resetPassword: (username, otp, newPassword) => api.post('/auth/reset-password', { username, otp, newPassword }),
 };

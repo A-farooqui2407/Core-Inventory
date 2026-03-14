@@ -159,7 +159,7 @@ if (!v4) {
     )`);
     db.run(`INSERT INTO _schema_version (version) VALUES (4)`);
     saveDb();
-    console.log('Migration 4 (PDF workflow) applied.');
+    if (process.env.NODE_ENV !== 'production') console.log('Migration 4 (PDF workflow) applied.');
   } catch (e) {
     console.error('Migration 4 error:', e.message);
   }
@@ -176,5 +176,5 @@ db.run(`CREATE TABLE IF NOT EXISTS users (
 
 saveDb();
 
-console.log('Database initialized.');
+if (process.env.NODE_ENV !== 'production') console.log('Database initialized.');
 process.exit(0);

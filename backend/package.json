@@ -11,10 +11,12 @@
     "test": "cross-env NODE_ENV=test node --test tests/api.test.js"
   },
   "dependencies": {
+    "bcrypt": "^6.0.0",
     "cors": "^2.8.5",
     "dotenv": "^16.4.5",
     "express": "^4.21.1",
     "jsonwebtoken": "^9.0.3",
+    "nodemailer": "^8.0.2",
     "sql.js": "^1.14.1"
   },
   "devDependencies": {

@@ -101,7 +101,7 @@ export default function Products() {
   };
 
   const handleDelete = (id) => {
-    productsApi.delete(id).then(() => { setDeleteConfirm(null); load(); });
+    productsApi.delete(id).then(() => { setDeleteConfirm(null); load(); }).catch((err) => setError(err.message));
   };
 
   return (

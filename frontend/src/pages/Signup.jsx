@@ -7,10 +7,13 @@ export default function Signup() {
   const { login } = useAuth();
   const navigate = useNavigate();
   const [username, setUsername] = useState('');
+  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(false);
+
+  const isValidEmail = (value) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test((value || '').trim());
 
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -23,8 +26,16 @@ export default function Signup() {
       setError('Password must be at least 4 characters');
       return;
     }
+    if (!email.trim()) {
+      setError('Email is required');
+      return;
+    }
+    if (!isValidEmail(email)) {
+      setError('Please enter a valid email address');
+      return;
+    }
     setLoading(true);
-    authApi.signup(username.trim(), password).then((data) => {
+    authApi.signup(username.trim(), password, email.trim()).then((data) => {
       login(data.data?.token);
       navigate('/', { replace: true });
     }).catch((err) => {
@@ -48,6 +59,17 @@ export default function Signup() {
             value={username}
             onChange={(e) => setUsername(e.target.value)}
             autoComplete="username"
+            required
+          />
+          <label htmlFor="signup-email">Email</label>
+          <input
+            id="signup-email"
+            type="email"
+            className="input"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            autoComplete="email"
+            placeholder="you@example.com"
             required
           />
           <label htmlFor="signup-password">Password</label>

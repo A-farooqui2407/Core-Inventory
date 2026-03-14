@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { useTheme } from '@/contexts/ThemeContext';
 import { authApi } from '@/services/api';
@@ -25,6 +25,7 @@ export default function Login() {
   const { login } = useAuth();
   const { isDark, setTheme } = useTheme();
   const navigate = useNavigate();
+  const location = useLocation();
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState(null);
@@ -36,7 +37,8 @@ export default function Login() {
     setLoading(true);
     authApi.login(username, password).then((data) => {
       login(data.data?.token);
-      navigate('/', { replace: true });
+      const from = location.state?.from?.pathname ?? '/';
+      navigate(from, { replace: true });
     }).catch((err) => {
       setError(err.message || 'Login failed');
       setLoading(false);

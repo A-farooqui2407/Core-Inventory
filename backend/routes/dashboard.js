@@ -5,37 +5,63 @@ import { success } from '../lib/response.js';
 
 const router = Router();
 const DEFAULT_LOW_STOCK_THRESHOLD = 10;
+const STATUSES = ['draft', 'waiting', 'ready', 'done', 'canceled'];
 
-// GET /api/dashboard/summary — key metrics and low-stock list
+// GET /api/dashboard/summary — key metrics and low-stock list (optional filters: status, category_id)
 router.get('/summary', async (req, res) => {
   try {
     const db = await getDbAsync();
     const threshold = Math.max(0, parseInt(req.query.low_stock_threshold, 10) || DEFAULT_LOW_STOCK_THRESHOLD);
+    const status = (req.query.status || '').trim();
+    const statusFilter = status && STATUSES.includes(status) ? status : null;
+    const category_id = req.query.category_id ? parseInt(req.query.category_id, 10) : null;
 
-    const productsCount = queryOne(db, 'SELECT COUNT(*) as c FROM products');
-    const totalQty = queryOne(db, 'SELECT COALESCE(SUM(quantity), 0) as total FROM products');
-    const warehousesCount = queryOne(db, 'SELECT COUNT(*) as c FROM warehouses');
-    const movementsCount = queryOne(db, 'SELECT COUNT(*) as c FROM stock_movements');
+    let productsCountSql = 'SELECT COUNT(*) as c FROM products';
+    let totalQtySql = 'SELECT COALESCE(SUM(quantity), 0) as total FROM products';
+    const productParams = [];
+    const productConditions = [];
+    if (Number.isInteger(category_id)) {
+      productConditions.push('category_id = ?');
+      productParams.push(category_id);
+    }
+    if (productConditions.length) {
+      productsCountSql += ' WHERE ' + productConditions.join(' AND ');
+      totalQtySql += ' WHERE ' + productConditions.join(' AND ');
+    }
+    const productsCount = queryOne(db, productsCountSql, productParams)?.c ?? 0;
+    const totalQty = queryOne(db, totalQtySql, productParams)?.total ?? 0;
+
+    const warehousesCount = queryOne(db, 'SELECT COUNT(*) as c FROM warehouses')?.c ?? 0;
+    const movementsCount = queryOne(db, 'SELECT COUNT(*) as c FROM stock_movements')?.c ?? 0;
+
     let pendingReceiptsCount = 0;
     let pendingDeliveriesCount = 0;
     let scheduledTransfersCount = 0;
     try {
-      pendingReceiptsCount = queryOne(db, "SELECT COUNT(*) as c FROM receipt_documents WHERE status NOT IN ('done','canceled')")?.c ?? 0;
-      pendingDeliveriesCount = queryOne(db, "SELECT COUNT(*) as c FROM delivery_documents WHERE status NOT IN ('done','canceled')")?.c ?? 0;
+      if (statusFilter) {
+        pendingReceiptsCount = queryOne(db, 'SELECT COUNT(*) as c FROM receipt_documents WHERE status = ?', [statusFilter])?.c ?? 0;
+        pendingDeliveriesCount = queryOne(db, 'SELECT COUNT(*) as c FROM delivery_documents WHERE status = ?', [statusFilter])?.c ?? 0;
+      } else {
+        pendingReceiptsCount = queryOne(db, "SELECT COUNT(*) as c FROM receipt_documents WHERE status NOT IN ('done','canceled')")?.c ?? 0;
+        pendingDeliveriesCount = queryOne(db, "SELECT COUNT(*) as c FROM delivery_documents WHERE status NOT IN ('done','canceled')")?.c ?? 0;
+      }
       scheduledTransfersCount = queryOne(db, "SELECT COUNT(*) as c FROM scheduled_operations WHERE type = 'Transfer' AND status = 'pending'")?.c ?? 0;
     } catch (_) { /* tables may not exist before migration 4 */ }
 
-    const lowStockItems = queryAll(
-      db,
-      'SELECT id, name, sku, quantity, unit FROM products WHERE quantity <= ? ORDER BY quantity ASC',
-      [threshold]
-    );
+    let lowStockSql = 'SELECT id, name, sku, quantity, unit FROM products WHERE quantity <= ?';
+    const lowStockParams = [threshold];
+    if (Number.isInteger(category_id)) {
+      lowStockSql += ' AND category_id = ?';
+      lowStockParams.push(category_id);
+    }
+    lowStockSql += ' ORDER BY quantity ASC';
+    const lowStockItems = queryAll(db, lowStockSql, lowStockParams);
 
     return success(res, {
-      productsCount: productsCount?.c ?? 0,
-      totalQuantity: totalQty?.total ?? 0,
-      warehousesCount: warehousesCount?.c ?? 0,
-      movementsCount: movementsCount?.c ?? 0,
+      productsCount,
+      totalQuantity: totalQty,
+      warehousesCount,
+      movementsCount,
       pendingReceiptsCount,
       pendingDeliveriesCount,
       scheduledTransfersCount,

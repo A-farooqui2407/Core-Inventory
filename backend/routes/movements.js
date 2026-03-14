@@ -14,17 +14,20 @@ function parseQuery(req) {
   const offset = (page - 1) * limit;
   const type = (req.query.type || '').trim();
   const product_id = req.query.product_id ? parseInt(req.query.product_id, 10) : null;
+  const location_id = req.query.location_id ? parseInt(req.query.location_id, 10) : null;
+  const warehouse_id = req.query.warehouse_id ? parseInt(req.query.warehouse_id, 10) : null;
+  const category_id = req.query.category_id ? parseInt(req.query.category_id, 10) : null;
   const sort = (req.query.sort || 'id').trim();
   const order = (req.query.order || 'desc').toLowerCase() === 'asc' ? 'ASC' : 'DESC';
   const validSort = ['id', 'created_at', 'type', 'quantity'].includes(sort) ? sort : 'id';
-  return { page, limit, offset, type, product_id, sort: validSort, order };
+  return { page, limit, offset, type, product_id, location_id, warehouse_id, category_id, sort: validSort, order };
 }
 
 // GET /api/movements
 router.get('/', async (req, res) => {
   try {
     const db = await getDbAsync();
-    const { limit, offset, type, product_id, sort, order } = parseQuery(req);
+    const { limit, offset, type, product_id, location_id, warehouse_id, category_id, sort, order } = parseQuery(req);
     let sql = `
       SELECT m.*, p.name as product_name, p.sku as product_sku,
         fl.name as from_location_name, tl.name as to_location_name
@@ -43,11 +46,28 @@ router.get('/', async (req, res) => {
       conditions.push('m.product_id = ?');
       params.push(product_id);
     }
+    if (Number.isInteger(location_id)) {
+      conditions.push('(m.from_location_id = ? OR m.to_location_id = ?)');
+      params.push(location_id, location_id);
+    }
+    if (Number.isInteger(warehouse_id)) {
+      conditions.push('(fl.warehouse_id = ? OR tl.warehouse_id = ?)');
+      params.push(warehouse_id, warehouse_id);
+    }
+    if (Number.isInteger(category_id)) {
+      conditions.push('p.category_id = ?');
+      params.push(category_id);
+    }
     if (conditions.length) sql += ' WHERE ' + conditions.join(' AND ');
     sql += ` ORDER BY m.${sort} ${order} LIMIT ? OFFSET ?`;
     params.push(limit, offset);
     const items = queryAll(db, sql, params);
-    let countSql = 'SELECT COUNT(*) as total FROM stock_movements m';
+    let countSql = `
+      SELECT COUNT(*) as total FROM stock_movements m
+      JOIN products p ON m.product_id = p.id
+      LEFT JOIN locations fl ON m.from_location_id = fl.id
+      LEFT JOIN locations tl ON m.to_location_id = tl.id
+    `;
     if (conditions.length) countSql += ' WHERE ' + conditions.join(' AND ');
     const countParams = conditions.length ? params.slice(0, -2) : [];
     const countRow = queryOne(db, countSql, countParams);
