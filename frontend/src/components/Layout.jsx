@@ -8,6 +8,8 @@ export default function Layout() {
     { path: '/warehouses', label: 'Warehouses' },
     { path: '/locations', label: 'Locations' },
     { path: '/movements', label: 'Movements' },
+    { path: '/scheduled', label: 'Scheduled' },
+    { path: '/transfer', label: 'Transfer' },
   ];
 
   return (
@@ -19,7 +21,7 @@ export default function Layout() {
             <Link
               key={path}
               to={path}
-              className={location.pathname === path ? 'active' : ''}
+              className={location.pathname === path || (path !== '/' && location.pathname.startsWith(path)) ? 'active' : ''}
             >
               {label}
             </Link>

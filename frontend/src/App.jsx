@@ -5,6 +5,8 @@ import Products from '@/pages/Products';
 import Warehouses from '@/pages/Warehouses';
 import Locations from '@/pages/Locations';
 import Movements from '@/pages/Movements';
+import Scheduled from '@/pages/Scheduled';
+import Transfer from '@/pages/Transfer';
 import './App.css';
 
 export default function App() {
@@ -16,6 +18,8 @@ export default function App() {
         <Route path="warehouses" element={<Warehouses />} />
         <Route path="locations" element={<Locations />} />
         <Route path="movements" element={<Movements />} />
+        <Route path="scheduled" element={<Scheduled />} />
+        <Route path="transfer" element={<Transfer />} />
       </Route>
     </Routes>
   );

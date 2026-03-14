@@ -48,3 +48,15 @@ export const movementsApi = {
   create: (body) => api.post('/movements', body),
   delete: (id) => api.delete(`/movements/${id}`),
 };
+
+export const dashboardApi = {
+  summary: (params) => api.get('/dashboard/summary', { params }),
+};
+
+export const scheduledApi = {
+  list: (params) => api.get('/scheduled', { params }),
+  get: (id) => api.get(`/scheduled/${id}`),
+  create: (body) => api.post('/scheduled', body),
+  update: (id, body) => api.put(`/scheduled/${id}`, body),
+  delete: (id) => api.delete(`/scheduled/${id}`),
+};

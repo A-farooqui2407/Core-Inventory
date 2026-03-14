@@ -50,10 +50,10 @@ Single reference document for the implementation roadmap of the CoreInventory re
 
 | # | Task | Status | Notes |
 |---|------|--------|--------|
-| 4.1 | Dashboard page: key metrics (total stock, value, movement counts) | | Summary API if needed |
-| 4.2 | Low stock alerts: threshold config, list/widget | | Backend rule or query |
-| 4.3 | Activity timeline: recent stock movements | | Time-ordered list/feed |
-| 4.4 | Charts or simple visualizations (optional) | | Stock levels, movement trends |
+| 4.1 | Dashboard page: key metrics (total stock, value, movement counts) | Done | GET /api/dashboard/summary; productsCount, totalQuantity, warehousesCount, movementsCount |
+| 4.2 | Low stock alerts: threshold config, list/widget | Done | Summary returns lowStockItems (quantity ≤ threshold); UI threshold input + list |
+| 4.3 | Activity timeline: recent stock movements | Done | Last 15 movements; type badges, product, qty, locations, date |
+| 4.4 | Charts or simple visualizations (optional) | Done | Bar chart: movement types breakdown (recent 15) |
 
 **Deliverable:** Dashboard with metrics, low-stock alerts, and activity timeline.
 
@@ -63,10 +63,10 @@ Single reference document for the implementation roadmap of the CoreInventory re
 
 | # | Task | Status | Notes |
 |---|------|--------|--------|
-| 5.1 | Scheduling of inventory operations (due dates, tasks) | | Model + API + UI |
-| 5.2 | Drag-and-drop warehouse movement (dnd-kit) | | Move items between locations |
-| 5.3 | Real-time or polling updates for stock changes | | Optional WebSocket or refresh |
-| 5.4 | Search, filters, sort on main lists | | Products, movements, warehouses |
+| 5.1 | Scheduling of inventory operations (due dates, tasks) | Done | `scheduled_operations` table; CRUD /api/scheduled; Scheduled page with status, sort, Done/Cancel |
+| 5.2 | Drag-and-drop warehouse movement (dnd-kit) | Done | Transfer page: drag product to location drop zone → confirm quantity → create Transfer movement |
+| 5.3 | Real-time or polling updates for stock changes | Done | Dashboard polls every 30s; Products/Warehouses/Movements have refresh button |
+| 5.4 | Search, filters, sort on main lists | Done | Products/Warehouses/Movements: sort dropdown + order; search/filters already present |
 
 **Deliverable:** Scheduled operations, drag-and-drop movements, improved list UX.
 

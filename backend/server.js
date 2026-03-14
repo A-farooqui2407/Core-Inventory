@@ -6,6 +6,8 @@ import productsRouter from './routes/products.js';
 import warehousesRouter from './routes/warehouses.js';
 import locationsRouter from './routes/locations.js';
 import movementsRouter from './routes/movements.js';
+import dashboardRouter from './routes/dashboard.js';
+import scheduledRouter from './routes/scheduled.js';
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -47,6 +49,8 @@ app.use('/api/products', productsRouter);
 app.use('/api/warehouses', warehousesRouter);
 app.use('/api/locations', locationsRouter);
 app.use('/api/movements', movementsRouter);
+app.use('/api/dashboard', dashboardRouter);
+app.use('/api/scheduled', scheduledRouter);
 
 app.listen(PORT, () => {
   console.log(`Server running at http://localhost:${PORT}`);

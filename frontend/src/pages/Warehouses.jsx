@@ -12,6 +12,9 @@ export default function Warehouses() {
   const [editing, setEditing] = useState(null);
   const [form, setForm] = useState({ name: '', code: '', address: '' });
   const [deleteConfirm, setDeleteConfirm] = useState(null);
+  const [sort, setSort] = useState('id');
+  const [order, setOrder] = useState('desc');
+  const [refreshKey, setRefreshKey] = useState(0);
 
   const limit = 20;
 
@@ -35,7 +38,7 @@ export default function Warehouses() {
       if (!cancelled) setError(null);
     });
     warehousesApi
-      .list({ page, limit, search: search || undefined })
+      .list({ page, limit, search: search || undefined, sort, order })
       .then((data) => {
         if (!cancelled) {
           setItems(data.data?.items ?? []);
@@ -45,7 +48,7 @@ export default function Warehouses() {
       .catch((err) => { if (!cancelled) setError(err.message); })
       .finally(() => { if (!cancelled) setLoading(false); });
     return () => { cancelled = true; };
-  }, [page, search]);
+  }, [page, search, sort, order, refreshKey]);
 
   const openCreate = () => {
     setEditing(null);
@@ -89,6 +92,12 @@ export default function Warehouses() {
           onChange={(e) => { setSearch(e.target.value); setPage(1); }}
           className="input"
         />
+        <select className="input" value={`${sort}-${order}`} onChange={(e) => { const v = e.target.value.split('-'); setSort(v[0]); setOrder(v[1]); setPage(1); }} style={{ maxWidth: 160 }}>
+          <option value="id-desc">Newest</option>
+          <option value="name-asc">Name (A–Z)</option>
+          <option value="code-asc">Code (A–Z)</option>
+        </select>
+        <button type="button" className="btn" onClick={() => setRefreshKey((k) => k + 1)} title="Refresh">↻</button>
       </div>
 
       {error && <div className="alert alert-error">{error}</div>}

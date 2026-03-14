@@ -13,14 +13,17 @@ function parseQuery(req) {
   const offset = (page - 1) * limit;
   const type = (req.query.type || '').trim();
   const product_id = req.query.product_id ? parseInt(req.query.product_id, 10) : null;
-  return { page, limit, offset, type, product_id };
+  const sort = (req.query.sort || 'id').trim();
+  const order = (req.query.order || 'desc').toLowerCase() === 'asc' ? 'ASC' : 'DESC';
+  const validSort = ['id', 'created_at', 'type', 'quantity'].includes(sort) ? sort : 'id';
+  return { page, limit, offset, type, product_id, sort: validSort, order };
 }
 
 // GET /api/movements
 router.get('/', async (req, res) => {
   try {
     const db = await getDbAsync();
-    const { limit, offset, type, product_id } = parseQuery(req);
+    const { limit, offset, type, product_id, sort, order } = parseQuery(req);
     let sql = `
       SELECT m.*, p.name as product_name, p.sku as product_sku,
         fl.name as from_location_name, tl.name as to_location_name
@@ -40,7 +43,7 @@ router.get('/', async (req, res) => {
       params.push(product_id);
     }
     if (conditions.length) sql += ' WHERE ' + conditions.join(' AND ');
-    sql += ' ORDER BY m.id DESC LIMIT ? OFFSET ?';
+    sql += ` ORDER BY m.${sort} ${order} LIMIT ? OFFSET ?`;
     params.push(limit, offset);
     const items = queryAll(db, sql, params);
     let countSql = 'SELECT COUNT(*) as total FROM stock_movements m';
