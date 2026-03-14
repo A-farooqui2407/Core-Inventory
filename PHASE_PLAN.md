@@ -36,11 +36,11 @@ Single reference document for the implementation roadmap of the CoreInventory re
 
 | # | Task | Status | Notes |
 |---|------|--------|--------|
-| 3.1 | React Router setup, layout, nav | | Pages skeleton |
-| 3.2 | API service layer (Axios), base URL, interceptors | | Centralized API calls |
-| 3.3 | Product Management: list, create, edit, delete | | Forms + validation |
-| 3.4 | Warehouse & location: list, create, edit | | Location tree or flat list |
-| 3.5 | Stock movements: list, create (by type) | | Receipts, deliveries, transfers, adjustments |
+| 3.1 | React Router setup, layout, nav | Done | Layout + nav; Dashboard, Products, Warehouses, Locations, Movements |
+| 3.2 | API service layer (Axios), base URL, interceptors | Done | `services/api.js`; response unwrap, error message extraction |
+| 3.3 | Product Management: list, create, edit, delete | Done | Table, search, pagination, modal forms, delete confirm |
+| 3.4 | Warehouse & location: list, create, edit | Done | Warehouses CRUD; Locations with warehouse filter, parent optional |
+| 3.5 | Stock movements: list, create (by type) | Done | List with type/product filters; create modal (Receipt, Delivery, Transfer, Adjustment) |
 
 **Deliverable:** Users can manage products, warehouses, and record movements from the UI.
 
