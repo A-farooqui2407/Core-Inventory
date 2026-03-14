@@ -23,6 +23,9 @@ export default function Movements() {
     reference: '',
     notes: '',
   });
+  const [sort, setSort] = useState('id');
+  const [order, setOrder] = useState('desc');
+  const [refreshKey, setRefreshKey] = useState(0);
 
   const limit = 20;
 
@@ -55,7 +58,7 @@ export default function Movements() {
       if (!cancelled) setLoading(true);
       if (!cancelled) setError(null);
     });
-    const params = { page, limit };
+    const params = { page, limit, sort, order };
     if (typeFilter) params.type = typeFilter;
     if (productId) params.product_id = productId;
     movementsApi
@@ -69,7 +72,7 @@ export default function Movements() {
       .catch((err) => { if (!cancelled) setError(err.message); })
       .finally(() => { if (!cancelled) setLoading(false); });
     return () => { cancelled = true; };
-  }, [page, typeFilter, productId]);
+  }, [page, typeFilter, productId, sort, order, refreshKey]);
 
   const openCreate = () => {
     setForm({
@@ -121,6 +124,13 @@ export default function Movements() {
             <option key={p.id} value={p.id}>{p.sku} – {p.name}</option>
           ))}
         </select>
+        <select className="input" value={`${sort}-${order}`} onChange={(e) => { const v = e.target.value.split('-'); setSort(v[0]); setOrder(v[1]); setPage(1); }} style={{ maxWidth: 160 }}>
+          <option value="id-desc">Newest first</option>
+          <option value="created_at-desc">Date (newest)</option>
+          <option value="created_at-asc">Date (oldest)</option>
+          <option value="type-asc">Type (A–Z)</option>
+        </select>
+        <button type="button" className="btn" onClick={() => setRefreshKey((k) => k + 1)} title="Refresh">↻</button>
       </div>
 
       {error && <div className="alert alert-error">{error}</div>}

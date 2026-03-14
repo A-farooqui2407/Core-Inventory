@@ -66,7 +66,25 @@ db.run(`
   )
 `);
 
-db.run(`INSERT OR IGNORE INTO _schema_version (version) VALUES (2)`);
+// Phase 5: Scheduled operations
+db.run(`
+  CREATE TABLE IF NOT EXISTS scheduled_operations (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    type TEXT NOT NULL CHECK (type IN ('Receipt','Delivery','Transfer','Pick','Stocktake')),
+    product_id INTEGER REFERENCES products(id),
+    quantity REAL,
+    from_location_id INTEGER REFERENCES locations(id),
+    to_location_id INTEGER REFERENCES locations(id),
+    due_date TEXT NOT NULL,
+    status TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending','done','cancelled')),
+    reference TEXT,
+    notes TEXT,
+    created_at TEXT DEFAULT (datetime('now')),
+    updated_at TEXT DEFAULT (datetime('now'))
+  )
+`);
+
+db.run(`INSERT OR IGNORE INTO _schema_version (version) VALUES (3)`);
 saveDb();
 
 console.log('Database initialized.');

@@ -10,21 +10,24 @@ function parseQuery(req) {
   const limit = Math.min(100, Math.max(1, parseInt(req.query.limit, 10) || 20));
   const offset = (page - 1) * limit;
   const search = (req.query.search || '').trim();
-  return { page, limit, offset, search };
+  const sort = (req.query.sort || 'id').trim();
+  const order = (req.query.order || 'desc').toLowerCase() === 'asc' ? 'ASC' : 'DESC';
+  const validSort = ['id', 'name', 'sku', 'quantity', 'created_at'].includes(sort) ? sort : 'id';
+  return { page, limit, offset, search, sort: validSort, order };
 }
 
-// GET /api/products — list with pagination and search
+// GET /api/products — list with pagination, search, sort
 router.get('/', async (req, res) => {
   try {
     const db = await getDbAsync();
-    const { limit, offset, search } = parseQuery(req);
+    const { limit, offset, search, sort, order } = parseQuery(req);
     let sql = 'SELECT * FROM products';
     const params = [];
     if (search) {
       sql += ' WHERE name LIKE ? OR sku LIKE ?';
       params.push(`%${search}%`, `%${search}%`);
     }
-    sql += ' ORDER BY id DESC LIMIT ? OFFSET ?';
+    sql += ` ORDER BY ${sort} ${order} LIMIT ? OFFSET ?`;
     params.push(limit, offset);
     const items = queryAll(db, sql, params);
     const countRow = queryOne(

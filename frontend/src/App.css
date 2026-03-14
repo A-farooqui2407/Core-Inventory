@@ -24,7 +24,9 @@
 
 .app-nav {
   display: flex;
+  flex-wrap: wrap;
   gap: 0.25rem;
+  align-items: center;
 }
 
 .app-nav a {
@@ -241,4 +243,489 @@
 .pagination button:disabled {
   opacity: 0.5;
   cursor: not-allowed;
+}
+
+/* Dashboard (Phase 4) */
+.dashboard-page h1 {
+  margin-bottom: 1rem;
+}
+
+.dashboard-metrics {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.metric-card {
+  background: var(--code-bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.metric-value {
+  font-size: 1.75rem;
+  font-weight: 600;
+  color: var(--text-h);
+}
+
+.metric-label {
+  font-size: 0.9rem;
+  color: var(--text-h);
+}
+
+.metric-sub {
+  font-size: 0.8rem;
+  color: var(--text);
+}
+
+.dashboard-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 1.5rem;
+}
+
+.dashboard-section {
+  background: var(--code-bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 1rem;
+}
+
+.dashboard-section h2 {
+  margin: 0 0 0.75rem;
+  font-size: 1.1rem;
+}
+
+.section-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.threshold-control {
+  font-size: 0.9rem;
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.input-sm {
+  width: 4rem;
+  padding: 0.35rem 0.5rem;
+}
+
+.low-stock-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.low-stock-list li {
+  border-bottom: 1px solid var(--border);
+}
+
+.low-stock-list li:last-child {
+  border-bottom: none;
+}
+
+.low-stock-link {
+  display: flex;
+  justify-content: space-between;
+  padding: 0.5rem 0;
+  text-decoration: none;
+  color: var(--text-h);
+  font-size: 0.9rem;
+}
+
+.low-stock-link:hover {
+  color: var(--accent);
+}
+
+.low-stock-qty {
+  color: var(--text);
+  font-weight: 500;
+}
+
+.activity-timeline {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.activity-item {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 0;
+  border-bottom: 1px solid var(--border);
+  font-size: 0.9rem;
+}
+
+.activity-item:last-child {
+  border-bottom: none;
+}
+
+.activity-type {
+  font-size: 0.75rem;
+  padding: 0.2rem 0.5rem;
+  border-radius: 4px;
+  font-weight: 500;
+}
+
+.activity-type-receipt {
+  background: rgba(34, 197, 94, 0.2);
+  color: #16a34a;
+}
+
+.activity-type-delivery {
+  background: rgba(239, 68, 68, 0.2);
+  color: #dc2626;
+}
+
+.activity-type-transfer {
+  background: rgba(59, 130, 246, 0.2);
+  color: #2563eb;
+}
+
+.activity-type-adjustment {
+  background: rgba(168, 85, 247, 0.2);
+  color: #7c3aed;
+}
+
+.activity-desc {
+  flex: 1;
+  color: var(--text);
+  min-width: 0;
+}
+
+.activity-date {
+  font-size: 0.8rem;
+  color: var(--text);
+}
+
+.section-link {
+  margin-top: 0.75rem;
+  display: inline-block;
+}
+
+.muted {
+  color: var(--text);
+  font-size: 0.9rem;
+  margin: 0;
+}
+
+.chart-section {
+  margin-top: 1.5rem;
+}
+
+.chart-bars {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.chart-bar-row {
+  display: grid;
+  grid-template-columns: 100px 1fr 2rem;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.9rem;
+}
+
+.chart-bar-label {
+  color: var(--text-h);
+}
+
+.chart-bar-wrap {
+  height: 1.25rem;
+  background: var(--border);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.chart-bar {
+  height: 100%;
+  background: var(--accent);
+  border-radius: 4px;
+  min-width: 4px;
+  transition: width 0.2s;
+}
+
+.chart-bar-value {
+  text-align: right;
+  color: var(--text);
+}
+
+/* Scheduled operations (Phase 5) */
+.badge {
+  font-size: 0.75rem;
+  padding: 0.2rem 0.5rem;
+  border-radius: 4px;
+  font-weight: 500;
+}
+
+.badge-pending {
+  background: rgba(59, 130, 246, 0.2);
+  color: #2563eb;
+}
+
+.badge-done {
+  background: rgba(34, 197, 94, 0.2);
+  color: #16a34a;
+}
+
+.badge-cancelled {
+  background: var(--code-bg);
+  color: var(--text);
+}
+
+/* Transfer / drag-and-drop (Phase 5) */
+.transfer-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.transfer-toolbar label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  font-size: 0.9rem;
+  color: var(--text-h);
+}
+
+.transfer-area {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.5rem;
+  margin-top: 1rem;
+}
+
+@media (max-width: 768px) {
+  .transfer-area {
+    grid-template-columns: 1fr;
+  }
+}
+
+.transfer-area h3 {
+  margin: 0 0 0.75rem;
+  font-size: 1rem;
+}
+
+.transfer-product-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.transfer-product-card {
+  padding: 0.5rem 0.75rem;
+  background: var(--code-bg);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  cursor: grab;
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  min-width: 120px;
+}
+
+.transfer-product-card:hover {
+  border-color: var(--accent);
+}
+
+.transfer-product-card.dragging {
+  opacity: 0.7;
+  cursor: grabbing;
+}
+
+.transfer-product-name {
+  font-weight: 500;
+  color: var(--text-h);
+}
+
+.transfer-product-sku {
+  font-size: 0.8rem;
+  color: var(--text);
+}
+
+.transfer-product-qty {
+  font-size: 0.85rem;
+  color: var(--accent);
+}
+
+.transfer-drop-area {
+  min-height: 200px;
+}
+
+.transfer-drop-zone {
+  min-height: 180px;
+  border: 2px dashed var(--border);
+  border-radius: 8px;
+  padding: 1rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  transition: border-color 0.2s, background 0.2s;
+}
+
+.transfer-drop-zone.over {
+  border-color: var(--accent);
+  background: var(--accent-bg);
+}
+
+.transfer-zone-label {
+  font-size: 0.9rem;
+  color: var(--text);
+}
+
+.transfer-pending-name {
+  font-weight: 500;
+  color: var(--accent);
+}
+
+/* Login (Phase 6) */
+.login-page {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 60vh;
+}
+
+.login-card {
+  width: 100%;
+  max-width: 360px;
+  padding: 2rem;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--code-bg);
+}
+
+.login-card h1 {
+  margin: 0 0 0.25rem;
+  font-size: 1.5rem;
+}
+
+.login-card .muted {
+  margin-bottom: 1.25rem;
+}
+
+.login-card label {
+  display: block;
+  margin-top: 0.75rem;
+  margin-bottom: 0.25rem;
+  font-size: 0.9rem;
+  color: var(--text-h);
+}
+
+.login-card label:first-of-type {
+  margin-top: 0;
+}
+
+.btn-block {
+  width: 100%;
+  margin-top: 1.25rem;
+}
+
+/* Error boundary (Phase 6) */
+.error-boundary {
+  padding: 2rem;
+  text-align: center;
+}
+
+.error-boundary h1 {
+  margin-bottom: 0.5rem;
+}
+
+.error-boundary-details {
+  text-align: left;
+  font-size: 0.85rem;
+  padding: 1rem;
+  background: var(--code-bg);
+  border-radius: 6px;
+  overflow-x: auto;
+  margin: 1rem 0;
+}
+
+/* Toasts (Phase 6) */
+.toast-container {
+  position: fixed;
+  bottom: 1rem;
+  right: 1rem;
+  z-index: 9999;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  max-width: 360px;
+}
+
+.toast {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.75rem 1rem;
+  border-radius: 6px;
+  background: var(--code-bg);
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow);
+}
+
+.toast-success {
+  border-color: #16a34a;
+  background: rgba(34, 197, 94, 0.1);
+}
+
+.toast-error {
+  border-color: #dc2626;
+  background: rgba(220, 38, 38, 0.1);
+}
+
+.toast-dismiss {
+  background: none;
+  border: none;
+  font-size: 1.25rem;
+  cursor: pointer;
+  color: var(--text);
+  padding: 0 0.25rem;
+  line-height: 1;
+}
+
+.toast-dismiss:hover {
+  color: var(--text-h);
+}
+
+/* Loading spinner (Phase 6) */
+.loading-spinner {
+  display: inline-flex;
+  gap: 0.35rem;
+  padding: 0.5rem;
+}
+
+.loading-spinner-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--accent);
+  animation: loading-bounce 0.6s ease-in-out infinite;
+}
+
+.loading-spinner-dot:nth-child(2) { animation-delay: 0.1s; }
+.loading-spinner-dot:nth-child(3) { animation-delay: 0.2s; }
+
+@keyframes loading-bounce {
+  0%, 80%, 100% { transform: scale(0.8); opacity: 0.6; }
+  40% { transform: scale(1.2); opacity: 1; }
 }

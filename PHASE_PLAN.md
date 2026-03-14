@@ -50,10 +50,10 @@ Single reference document for the implementation roadmap of the CoreInventory re
 
 | # | Task | Status | Notes |
 |---|------|--------|--------|
-| 4.1 | Dashboard page: key metrics (total stock, value, movement counts) | | Summary API if needed |
-| 4.2 | Low stock alerts: threshold config, list/widget | | Backend rule or query |
-| 4.3 | Activity timeline: recent stock movements | | Time-ordered list/feed |
-| 4.4 | Charts or simple visualizations (optional) | | Stock levels, movement trends |
+| 4.1 | Dashboard page: key metrics (total stock, value, movement counts) | Done | GET /api/dashboard/summary; productsCount, totalQuantity, warehousesCount, movementsCount |
+| 4.2 | Low stock alerts: threshold config, list/widget | Done | Summary returns lowStockItems (quantity ≤ threshold); UI threshold input + list |
+| 4.3 | Activity timeline: recent stock movements | Done | Last 15 movements; type badges, product, qty, locations, date |
+| 4.4 | Charts or simple visualizations (optional) | Done | Bar chart: movement types breakdown (recent 15) |
 
 **Deliverable:** Dashboard with metrics, low-stock alerts, and activity timeline.
 
@@ -63,10 +63,10 @@ Single reference document for the implementation roadmap of the CoreInventory re
 
 | # | Task | Status | Notes |
 |---|------|--------|--------|
-| 5.1 | Scheduling of inventory operations (due dates, tasks) | | Model + API + UI |
-| 5.2 | Drag-and-drop warehouse movement (dnd-kit) | | Move items between locations |
-| 5.3 | Real-time or polling updates for stock changes | | Optional WebSocket or refresh |
-| 5.4 | Search, filters, sort on main lists | | Products, movements, warehouses |
+| 5.1 | Scheduling of inventory operations (due dates, tasks) | Done | `scheduled_operations` table; CRUD /api/scheduled; Scheduled page with status, sort, Done/Cancel |
+| 5.2 | Drag-and-drop warehouse movement (dnd-kit) | Done | Transfer page: drag product to location drop zone → confirm quantity → create Transfer movement |
+| 5.3 | Real-time or polling updates for stock changes | Done | Dashboard polls every 30s; Products/Warehouses/Movements have refresh button |
+| 5.4 | Search, filters, sort on main lists | Done | Products/Warehouses/Movements: sort dropdown + order; search/filters already present |
 
 **Deliverable:** Scheduled operations, drag-and-drop movements, improved list UX.
 
@@ -76,12 +76,12 @@ Single reference document for the implementation roadmap of the CoreInventory re
 
 | # | Task | Status | Notes |
 |---|------|--------|--------|
-| 6.1 | Auth (optional): login, roles, protect routes | | JWT or sessions |
-| 6.2 | Error boundaries, loading states, toasts | | Consistent UX |
-| 6.3 | Responsive layout, accessibility basics | | Mobile-friendly lists/forms |
-| 6.4 | Backend tests (critical routes) | | Jest or similar |
-| 6.5 | Frontend build & backend run in prod mode | | Env checks |
-| 6.6 | Deploy: frontend (static host), backend (Node host), DB | | Docs for deploy steps |
+| 6.1 | Auth (optional): login, roles, protect routes | Done | JWT; AUTH_ENABLED, /api/auth/login, /api/auth/status; frontend Login, ProtectedRoute, 401 handler |
+| 6.2 | Error boundaries, loading states, toasts | Done | ErrorBoundary, ToastProvider, LoadingSpinner; toasts auto-dismiss |
+| 6.3 | Responsive layout, accessibility basics | Done | Skip link, focus-visible, nav wrap; table-wrap overflow |
+| 6.4 | Backend tests (critical routes) | Done | Node --test: health, auth/status, products list |
+| 6.5 | Frontend build & backend run in prod mode | Done | NODE_ENV in .env.example; server exports app, no listen when NODE_ENV=test |
+| 6.6 | Deploy: frontend (static host), backend (Node host), DB | Done | DEPLOY.md with env, build, and host steps |
 
 **Deliverable:** Stable, deployable app with optional auth and better UX.
 
