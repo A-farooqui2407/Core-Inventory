@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { getDbAsync, saveDb } from '../db/connection.js';
-import { queryOne } from '../lib/db.js';
+import { queryOne, getLastId } from '../lib/db.js';
 import { createToken, verifyToken, verifyTokenForRefresh, checkCredentials, isAuthEnabled, hashPassword, comparePassword, legacyHashPassword } from '../lib/auth.js';
 import { sendOtpEmail } from '../lib/email.js';
 import { success, validationError } from '../lib/response.js';
@@ -36,12 +36,18 @@ router.get('/me', async (req, res) => {
 });
 
 // POST /api/auth/refresh — { token } -> new token if within REFRESH_WINDOW_DAYS (public)
-router.post('/refresh', (req, res) => {
+router.post('/refresh', async (req, res) => {
   const { token } = req.body || {};
   if (!token) return res.status(400).json({ ok: false, error: { code: 'VALIDATION', message: 'token is required' } });
   const payload = verifyTokenForRefresh(token);
   if (!payload || !payload.sub) return res.status(401).json({ ok: false, error: { code: 'UNAUTHORIZED', message: 'Token expired or invalid' } });
-  const newToken = createToken({ sub: payload.sub });
+  let userId = payload.userId;
+  if (userId == null) {
+    const db = await getDbAsync();
+    const u = queryOne(db, 'SELECT id FROM users WHERE username = ?', [payload.sub]);
+    userId = u?.id ?? 1;
+  }
+  const newToken = createToken({ sub: payload.sub, userId });
   return success(res, { token: newToken });
 });
 
@@ -70,8 +76,9 @@ router.post('/signup', async (req, res) => {
       'INSERT INTO users (username, password_hash, email, updated_at) VALUES (?, ?, ?, datetime("now"))',
       [username.trim(), hash, emailVal]
     );
+    const userId = getLastId(db);
     saveDb();
-    const token = createToken({ sub: username.trim() });
+    const token = createToken({ sub: username.trim(), userId });
     return success(res, { token }, 201);
   } catch (err) {
     if (err.message?.includes('UNIQUE')) return validationError(res, 'Username already exists');
@@ -88,7 +95,7 @@ router.post('/login', async (req, res) => {
     const user = queryOne(db, 'SELECT id, password_hash FROM users WHERE username = ?', [username.trim()]);
     if (user) {
       if (comparePassword(password, user.password_hash)) {
-        const token = createToken({ sub: username.trim() });
+        const token = createToken({ sub: username.trim(), userId: user.id });
         return success(res, { token });
       }
       // Migration: legacy SHA-256 hash — re-hash with bcrypt and update DB
@@ -97,13 +104,16 @@ router.post('/login', async (req, res) => {
         const newHash = hashPassword(password);
         db.run('UPDATE users SET password_hash = ?, updated_at = datetime("now") WHERE id = ?', [newHash, user.id]);
         saveDb();
-        const token = createToken({ sub: username.trim() });
+        const token = createToken({ sub: username.trim(), userId: user.id });
         return success(res, { token });
       }
     }
   } catch (_) { /* users table may not exist */ }
   if (checkCredentials(username, password)) {
-    const token = createToken({ sub: username });
+    const db = await getDbAsync();
+    const adminUser = queryOne(db, 'SELECT id FROM users WHERE username = ?', [username.trim()]);
+    const userId = adminUser ? adminUser.id : 1;
+    const token = createToken({ sub: username, userId });
     return success(res, { token });
   }
   return res.status(401).json({ ok: false, error: { code: 'UNAUTHORIZED', message: 'Invalid credentials' } });

@@ -19,15 +19,16 @@ function parseQuery(req) {
 // GET /api/receipts
 router.get('/', async (req, res) => {
   try {
+    const userId = req.user?.userId ?? 1;
     const db = await getDbAsync();
     const { limit, offset, status, warehouse_id } = parseQuery(req);
     let sql = `
       SELECT r.*, s.name as supplier_name, s.code as supplier_code
       FROM receipt_documents r
-      LEFT JOIN suppliers s ON r.supplier_id = s.id
-      WHERE 1=1
+      LEFT JOIN suppliers s ON r.supplier_id = s.id AND s.user_id = ?
+      WHERE r.user_id = ?
     `;
-    const params = [];
+    const params = [userId, userId];
     if (status && STATUSES.includes(status)) {
       sql += ' AND r.status = ?';
       params.push(status);
@@ -35,8 +36,8 @@ router.get('/', async (req, res) => {
     sql += ' ORDER BY r.id DESC LIMIT ? OFFSET ?';
     params.push(limit, offset);
     const items = queryAll(db, sql, params);
-    let countSql = 'SELECT COUNT(*) as total FROM receipt_documents r WHERE 1=1';
-    const countParams = [];
+    let countSql = 'SELECT COUNT(*) as total FROM receipt_documents r WHERE r.user_id = ?';
+    const countParams = [userId];
     if (status && STATUSES.includes(status)) {
       countSql += ' AND r.status = ?';
       countParams.push(status);
@@ -52,13 +53,14 @@ router.get('/', async (req, res) => {
 // GET /api/receipts/:id (with lines)
 router.get('/:id', async (req, res) => {
   try {
+    const userId = req.user?.userId ?? 1;
     const db = await getDbAsync();
     const id = parseInt(req.params.id, 10);
     if (Number.isNaN(id)) return validationError(res, 'Invalid receipt id');
     const doc = queryOne(db, `
       SELECT r.*, s.name as supplier_name, s.code as supplier_code
-      FROM receipt_documents r LEFT JOIN suppliers s ON r.supplier_id = s.id WHERE r.id = ?
-    `, [id]);
+      FROM receipt_documents r LEFT JOIN suppliers s ON r.supplier_id = s.id WHERE r.id = ? AND r.user_id = ?
+    `, [id, userId]);
     if (!doc) return notFound(res, 'Receipt');
     const lines = queryAll(db, `
       SELECT rl.*, p.name as product_name, p.sku as product_sku, p.unit,
@@ -77,12 +79,13 @@ router.get('/:id', async (req, res) => {
 // POST /api/receipts
 router.post('/', async (req, res) => {
   try {
+    const userId = req.user?.userId ?? 1;
     const { supplier_id, reference, notes, lines } = req.body || {};
     const db = await getDbAsync();
     const supId = supplier_id != null ? parseInt(supplier_id, 10) : null;
     db.run(
-      'INSERT INTO receipt_documents (supplier_id, status, reference, notes, updated_at) VALUES (?, ?, ?, ?, datetime("now"))',
-      [Number.isInteger(supId) ? supId : null, 'draft', reference?.trim() ?? null, notes?.trim() ?? null]
+      'INSERT INTO receipt_documents (supplier_id, status, reference, notes, user_id, updated_at) VALUES (?, ?, ?, ?, ?, datetime("now"))',
+      [Number.isInteger(supId) ? supId : null, 'draft', reference?.trim() ?? null, notes?.trim() ?? null, userId]
     );
     const receiptId = getLastId(db);
     if (Array.isArray(lines) && lines.length > 0) {
@@ -108,18 +111,19 @@ router.post('/', async (req, res) => {
 // PUT /api/receipts/:id — only when status is draft
 router.put('/:id', async (req, res) => {
   try {
+    const userId = req.user?.userId ?? 1;
     const id = parseInt(req.params.id, 10);
     if (Number.isNaN(id)) return validationError(res, 'Invalid receipt id');
     const { supplier_id, reference, notes, status, lines } = req.body || {};
     const db = await getDbAsync();
-    const existing = queryOne(db, 'SELECT * FROM receipt_documents WHERE id = ?', [id]);
+    const existing = queryOne(db, 'SELECT * FROM receipt_documents WHERE id = ? AND user_id = ?', [id, userId]);
     if (!existing) return notFound(res, 'Receipt');
     if (existing.status === 'done') return validationError(res, 'Cannot edit a validated receipt');
     const supId = supplier_id !== undefined ? (parseInt(supplier_id, 10) || null) : existing.supplier_id;
     const ref = reference !== undefined ? (reference?.trim() || null) : existing.reference;
     const n = notes !== undefined ? (notes?.trim() || null) : existing.notes;
     const newStatus = status && STATUSES.includes(status) ? status : existing.status;
-    db.run('UPDATE receipt_documents SET supplier_id=?, reference=?, notes=?, status=?, updated_at=datetime("now") WHERE id=?', [Number.isInteger(supId) ? supId : null, ref, n, newStatus, id]);
+    db.run('UPDATE receipt_documents SET supplier_id=?, reference=?, notes=?, status=?, updated_at=datetime("now") WHERE id=? AND user_id=?', [Number.isInteger(supId) ? supId : null, ref, n, newStatus, id, userId]);
     if (Array.isArray(lines)) {
       db.run('DELETE FROM receipt_lines WHERE receipt_id = ?', [id]);
       for (const line of lines) {
@@ -141,28 +145,29 @@ router.put('/:id', async (req, res) => {
 // POST /api/receipts/:id/validate — set status=done, create movements, update stock
 router.post('/:id/validate', async (req, res) => {
   try {
+    const userId = req.user?.userId ?? 1;
     const id = parseInt(req.params.id, 10);
     if (Number.isNaN(id)) return validationError(res, 'Invalid receipt id');
     const db = await getDbAsync();
-    const doc = queryOne(db, 'SELECT * FROM receipt_documents WHERE id = ?', [id]);
+    const doc = queryOne(db, 'SELECT * FROM receipt_documents WHERE id = ? AND user_id = ?', [id, userId]);
     if (!doc) return notFound(res, 'Receipt');
     if (doc.status === 'done') return validationError(res, 'Receipt already validated');
     const lines = queryAll(db, 'SELECT * FROM receipt_lines WHERE receipt_id = ?', [id]);
     if (lines.length === 0) return validationError(res, 'Receipt has no lines');
     for (const line of lines) {
-      const product = queryOne(db, 'SELECT id, quantity FROM products WHERE id = ?', [line.product_id]);
+      const product = queryOne(db, 'SELECT id, quantity FROM products WHERE id = ? AND user_id = ?', [line.product_id, userId]);
       if (!product) return validationError(res, `Product id ${line.product_id} not found`);
       const qty = line.quantity;
       const toLocId = line.to_location_id;
       db.run(
-        'INSERT INTO stock_movements (type, product_id, quantity, from_location_id, to_location_id, reference, notes) VALUES (?, ?, ?, ?, ?, ?, ?)',
-        ['Receipt', line.product_id, qty, null, toLocId, doc.reference, `Receipt #${id}`]
+        'INSERT INTO stock_movements (type, product_id, quantity, from_location_id, to_location_id, reference, notes, user_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+        ['Receipt', line.product_id, qty, null, toLocId, doc.reference, `Receipt #${id}`, userId]
       );
       const newQty = product.quantity + qty;
       db.run('UPDATE products SET quantity = ?, updated_at = datetime("now") WHERE id = ?', [newQty, line.product_id]);
-      if (toLocId) applyLocationBalance(db, line.product_id, toLocId, qty);
+      if (toLocId) applyLocationBalance(db, line.product_id, toLocId, qty, userId);
     }
-    db.run("UPDATE receipt_documents SET status = 'done', updated_at = datetime('now') WHERE id = ?", [id]);
+    db.run("UPDATE receipt_documents SET status = 'done', updated_at = datetime('now') WHERE id = ? AND user_id = ?", [id, userId]);
     saveDb();
     const row = queryOne(db, 'SELECT r.*, s.name as supplier_name FROM receipt_documents r LEFT JOIN suppliers s ON r.supplier_id = s.id WHERE r.id = ?', [id]);
     return success(res, row);
@@ -174,14 +179,15 @@ router.post('/:id/validate', async (req, res) => {
 // DELETE /api/receipts/:id — only draft
 router.delete('/:id', async (req, res) => {
   try {
+    const userId = req.user?.userId ?? 1;
     const id = parseInt(req.params.id, 10);
     if (Number.isNaN(id)) return validationError(res, 'Invalid receipt id');
     const db = await getDbAsync();
-    const existing = queryOne(db, 'SELECT * FROM receipt_documents WHERE id = ?', [id]);
+    const existing = queryOne(db, 'SELECT * FROM receipt_documents WHERE id = ? AND user_id = ?', [id, userId]);
     if (!existing) return notFound(res, 'Receipt');
     if (existing.status === 'done') return validationError(res, 'Cannot delete a validated receipt');
     db.run('DELETE FROM receipt_lines WHERE receipt_id = ?', [id]);
-    db.run('DELETE FROM receipt_documents WHERE id = ?', [id]);
+    db.run('DELETE FROM receipt_documents WHERE id = ? AND user_id = ?', [id, userId]);
     saveDb();
     return success(res, { deleted: id });
   } catch (err) {

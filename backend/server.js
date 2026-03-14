@@ -2,6 +2,7 @@ import 'dotenv/config';
 import express from 'express';
 import cors from 'cors';
 import { getDbAsync, saveDb } from './db/connection.js';
+import { queryOne } from './lib/db.js';
 import { authMiddleware } from './lib/auth.js';
 import authRouter from './routes/auth.js';
 import productsRouter from './routes/products.js';
@@ -150,6 +151,30 @@ async function ensureAllTables() {
     try { db.run('ALTER TABLE products ADD COLUMN category_id INTEGER REFERENCES categories(id)'); } catch (_) {}
     try { db.run('ALTER TABLE products ADD COLUMN reorder_min_quantity REAL'); } catch (_) {}
     try { db.run('ALTER TABLE products ADD COLUMN reorder_quantity REAL'); } catch (_) {}
+    // Migration 5: multi-user data isolation — add user_id to all data tables (run on every startup if needed)
+    db.run(`CREATE TABLE IF NOT EXISTS _schema_version (version INTEGER PRIMARY KEY, applied_at TEXT DEFAULT (datetime('now')))`);
+    db.run(`INSERT OR IGNORE INTO _schema_version (version) VALUES (1)`);
+    const hasV5 = queryOne(db, 'SELECT 1 as one FROM _schema_version WHERE version = 5');
+    if (!hasV5) {
+      const tables = [
+        'products', 'warehouses', 'locations', 'stock_movements', 'scheduled_operations',
+        'categories', 'suppliers', 'receipt_documents', 'delivery_documents', 'stock_balances',
+      ];
+      for (const table of tables) {
+        try {
+          db.run(`ALTER TABLE ${table} ADD COLUMN user_id INTEGER REFERENCES users(id)`);
+        } catch (e) {
+          if (!e.message || !e.message.includes('duplicate column')) throw e;
+        }
+      }
+      for (const table of tables) {
+        try {
+          db.run(`UPDATE ${table} SET user_id = 1 WHERE user_id IS NULL`);
+        } catch (_) {}
+      }
+      db.run(`INSERT INTO _schema_version (version) VALUES (5)`);
+      if (process.env.NODE_ENV !== 'production') console.log('Migration 5 (user_id) applied.');
+    }
     saveDb();
     if (process.env.NODE_ENV !== 'production') console.log('Database tables ensured.');
   } catch (e) {
