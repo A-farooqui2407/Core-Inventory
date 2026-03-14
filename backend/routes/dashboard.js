@@ -16,6 +16,14 @@ router.get('/summary', async (req, res) => {
     const totalQty = queryOne(db, 'SELECT COALESCE(SUM(quantity), 0) as total FROM products');
     const warehousesCount = queryOne(db, 'SELECT COUNT(*) as c FROM warehouses');
     const movementsCount = queryOne(db, 'SELECT COUNT(*) as c FROM stock_movements');
+    let pendingReceiptsCount = 0;
+    let pendingDeliveriesCount = 0;
+    let scheduledTransfersCount = 0;
+    try {
+      pendingReceiptsCount = queryOne(db, "SELECT COUNT(*) as c FROM receipt_documents WHERE status NOT IN ('done','canceled')")?.c ?? 0;
+      pendingDeliveriesCount = queryOne(db, "SELECT COUNT(*) as c FROM delivery_documents WHERE status NOT IN ('done','canceled')")?.c ?? 0;
+      scheduledTransfersCount = queryOne(db, "SELECT COUNT(*) as c FROM scheduled_operations WHERE type = 'Transfer' AND status = 'pending'")?.c ?? 0;
+    } catch (_) { /* tables may not exist before migration 4 */ }
 
     const lowStockItems = queryAll(
       db,
@@ -28,6 +36,9 @@ router.get('/summary', async (req, res) => {
       totalQuantity: totalQty?.total ?? 0,
       warehousesCount: warehousesCount?.c ?? 0,
       movementsCount: movementsCount?.c ?? 0,
+      pendingReceiptsCount,
+      pendingDeliveriesCount,
+      scheduledTransfersCount,
       lowStockThreshold: threshold,
       lowStockCount: lowStockItems.length,
       lowStockItems,

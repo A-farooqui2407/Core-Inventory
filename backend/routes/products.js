@@ -12,31 +12,35 @@ function parseQuery(req) {
   const search = (req.query.search || '').trim();
   const sort = (req.query.sort || 'id').trim();
   const order = (req.query.order || 'desc').toLowerCase() === 'asc' ? 'ASC' : 'DESC';
-  const validSort = ['id', 'name', 'sku', 'quantity', 'created_at'].includes(sort) ? sort : 'id';
+  const validSort = ['id', 'name', 'sku', 'quantity', 'created_at', 'category_name'].includes(sort) ? sort : 'id';
   return { page, limit, offset, search, sort: validSort, order };
 }
 
-// GET /api/products — list with pagination, search, sort
+// GET /api/products — list with pagination, search, sort, category filter
 router.get('/', async (req, res) => {
   try {
     const db = await getDbAsync();
     const { limit, offset, search, sort, order } = parseQuery(req);
-    let sql = 'SELECT * FROM products';
+    const category_id = req.query.category_id ? parseInt(req.query.category_id, 10) : null;
+    let sql = 'SELECT p.*, c.name as category_name FROM products p LEFT JOIN categories c ON p.category_id = c.id';
     const params = [];
+    const conditions = [];
     if (search) {
-      sql += ' WHERE name LIKE ? OR sku LIKE ?';
+      conditions.push('(p.name LIKE ? OR p.sku LIKE ?)');
       params.push(`%${search}%`, `%${search}%`);
     }
-    sql += ` ORDER BY ${sort} ${order} LIMIT ? OFFSET ?`;
+    if (Number.isInteger(category_id)) {
+      conditions.push('p.category_id = ?');
+      params.push(category_id);
+    }
+    if (conditions.length) sql += ' WHERE ' + conditions.join(' AND ');
+    const sortCol = sort === 'category_name' ? 'c.name' : `p.${sort}`;
+    sql += ` ORDER BY ${sortCol} ${order} LIMIT ? OFFSET ?`;
     params.push(limit, offset);
     const items = queryAll(db, sql, params);
-    const countRow = queryOne(
-      db,
-      search
-        ? 'SELECT COUNT(*) as total FROM products WHERE name LIKE ? OR sku LIKE ?'
-        : 'SELECT COUNT(*) as total FROM products',
-      search ? [`%${search}%`, `%${search}%`] : []
-    );
+    let countSql = 'SELECT COUNT(*) as total FROM products p';
+    if (conditions.length) countSql += ' WHERE ' + conditions.join(' AND ');
+    const countRow = queryOne(db, countSql, params.slice(0, -2));
     const total = countRow?.total ?? 0;
     return success(res, { items, total, limit, offset });
   } catch (err) {
@@ -50,7 +54,7 @@ router.get('/:id', async (req, res) => {
     const db = await getDbAsync();
     const id = parseInt(req.params.id, 10);
     if (Number.isNaN(id)) return validationError(res, 'Invalid product id');
-    const row = queryOne(db, 'SELECT * FROM products WHERE id = ?', [id]);
+    const row = queryOne(db, 'SELECT p.*, c.name as category_name FROM products p LEFT JOIN categories c ON p.category_id = c.id WHERE p.id = ?', [id]);
     if (!row) return notFound(res, 'Product');
     return success(res, row);
   } catch (err) {
@@ -61,7 +65,7 @@ router.get('/:id', async (req, res) => {
 // POST /api/products
 router.post('/', async (req, res) => {
   try {
-    const { name, sku, description, quantity, unit } = req.body || {};
+    const { name, sku, description, quantity, unit, category_id, reorder_min_quantity, reorder_quantity } = req.body || {};
     if (!name || typeof name !== 'string' || !name.trim())
       return validationError(res, 'name is required');
     if (!sku || typeof sku !== 'string' || !sku.trim())
@@ -69,9 +73,12 @@ router.post('/', async (req, res) => {
     const db = await getDbAsync();
     const qty = Number(quantity);
     const u = (unit && String(unit).trim()) || 'pcs';
+    const catId = category_id != null ? parseInt(category_id, 10) : null;
+    const reorderMin = reorder_min_quantity != null ? parseFloat(reorder_min_quantity) : null;
+    const reorderQty = reorder_quantity != null ? parseFloat(reorder_quantity) : null;
     db.run(
-      'INSERT INTO products (name, sku, description, quantity, unit, updated_at) VALUES (?, ?, ?, ?, ?, datetime("now"))',
-      [name.trim(), sku.trim(), description?.trim() ?? null, Number.isNaN(qty) ? 0 : qty, u]
+      'INSERT INTO products (name, sku, description, quantity, unit, category_id, reorder_min_quantity, reorder_quantity, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, datetime("now"))',
+      [name.trim(), sku.trim(), description?.trim() ?? null, Number.isNaN(qty) ? 0 : qty, u, Number.isInteger(catId) ? catId : null, Number.isFinite(reorderMin) ? reorderMin : null, Number.isFinite(reorderQty) ? reorderQty : null]
     );
     const id = getLastId(db);
     saveDb();
@@ -88,7 +95,7 @@ router.put('/:id', async (req, res) => {
   try {
     const id = parseInt(req.params.id, 10);
     if (Number.isNaN(id)) return validationError(res, 'Invalid product id');
-    const { name, sku, description, quantity, unit } = req.body || {};
+    const { name, sku, description, quantity, unit, category_id, reorder_min_quantity, reorder_quantity } = req.body || {};
     const db = await getDbAsync();
     const existing = queryOne(db, 'SELECT * FROM products WHERE id = ?', [id]);
     if (!existing) return notFound(res, 'Product');
@@ -97,9 +104,12 @@ router.put('/:id', async (req, res) => {
     const d = description !== undefined ? (description && String(description).trim()) || null : existing.description;
     const qty = quantity !== undefined ? (Number(quantity) || 0) : existing.quantity;
     const u = (unit != null && String(unit).trim()) ? String(unit).trim() : (existing.unit || 'pcs');
+    const catId = category_id !== undefined ? (parseInt(category_id, 10) || null) : (existing.category_id ?? null);
+    const reorderMin = reorder_min_quantity !== undefined ? (parseFloat(reorder_min_quantity) || null) : (existing.reorder_min_quantity ?? null);
+    const reorderQty = reorder_quantity !== undefined ? (parseFloat(reorder_quantity) || null) : (existing.reorder_quantity ?? null);
     db.run(
-      'UPDATE products SET name=?, sku=?, description=?, quantity=?, unit=?, updated_at=datetime("now") WHERE id=?',
-      [n, s, d, qty, u, id]
+      'UPDATE products SET name=?, sku=?, description=?, quantity=?, unit=?, category_id=?, reorder_min_quantity=?, reorder_quantity=?, updated_at=datetime("now") WHERE id=?',
+      [n, s, d, qty, u, Number.isInteger(catId) ? catId : null, Number.isFinite(reorderMin) ? reorderMin : null, Number.isFinite(reorderQty) ? reorderQty : null, id]
     );
     saveDb();
     const row = queryOne(db, 'SELECT * FROM products WHERE id = ?', [id]);

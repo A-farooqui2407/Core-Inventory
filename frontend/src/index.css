@@ -1,15 +1,51 @@
 :root {
-  --text: #6b6375;
-  --text-h: #08060d;
-  --bg: #fff;
-  --border: #e5e4e7;
-  --code-bg: #f4f3ec;
-  --accent: #aa3bff;
-  --accent-bg: rgba(170, 59, 255, 0.1);
-  --accent-border: rgba(170, 59, 255, 0.5);
-  --social-bg: rgba(244, 243, 236, 0.5);
+  --text: #5a5460;
+  --text-h: #1a1625;
+  --text-muted: #7a7580;
+  --bg: #fafafb;
+  --border: #e2e0e6;
+  --code-bg: #f0eef4;
+  --accent: #6366f1;
+  --accent-bg: rgba(99, 102, 241, 0.12);
+  --accent-border: rgba(99, 102, 241, 0.4);
+  --social-bg: rgba(240, 238, 244, 0.6);
   --shadow:
-    rgba(0, 0, 0, 0.1) 0 10px 15px -3px, rgba(0, 0, 0, 0.05) 0 4px 6px -2px;
+    rgba(0, 0, 0, 0.06) 0 4px 12px -2px, rgba(0, 0, 0, 0.04) 0 2px 6px -2px;
+
+  /* Movement / operation type colors */
+  --color-receipt: #059669;
+  --color-receipt-bg: rgba(5, 150, 105, 0.14);
+  --color-delivery: #dc2626;
+  --color-delivery-bg: rgba(220, 38, 38, 0.12);
+  --color-transfer: #2563eb;
+  --color-transfer-bg: rgba(37, 99, 235, 0.14);
+  --color-adjustment: #d97706;
+  --color-adjustment-bg: rgba(217, 119, 6, 0.14);
+
+  /* Document status colors */
+  --color-draft: #6b7280;
+  --color-draft-bg: rgba(107, 114, 128, 0.12);
+  --color-waiting: #ca8a04;
+  --color-waiting-bg: rgba(202, 138, 4, 0.14);
+  --color-ready: #0284c7;
+  --color-ready-bg: rgba(2, 132, 199, 0.12);
+  --color-done: #059669;
+  --color-done-bg: rgba(5, 150, 105, 0.14);
+  --color-canceled: #991b1b;
+  --color-canceled-bg: rgba(153, 27, 27, 0.1);
+
+  /* Sidebar (dark blue like primary button) */
+  --sidebar-bg: #4f46e5;
+  --sidebar-text: rgba(255, 255, 255, 0.95);
+  --sidebar-text-muted: rgba(255, 255, 255, 0.7);
+  --sidebar-hover: rgba(255, 255, 255, 0.12);
+  --sidebar-active: rgba(255, 255, 255, 0.22);
+
+  /* iOS-style bubble / pill */
+  --radius-pill: 9999px;
+  --radius-bubble: 20px;
+  --radius-bubble-sm: 14px;
+  --shadow-bubble: 0 2px 8px rgba(0, 0, 0, 0.06), 0 1px 2px rgba(0, 0, 0, 0.04);
 
   --sans: system-ui, 'Segoe UI', Roboto, sans-serif;
   --heading: system-ui, 'Segoe UI', Roboto, sans-serif;
@@ -30,24 +66,46 @@
   }
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --text: #9ca3af;
-    --text-h: #f3f4f6;
-    --bg: #16171d;
-    --border: #2e303a;
-    --code-bg: #1f2028;
-    --accent: #c084fc;
-    --accent-bg: rgba(192, 132, 252, 0.15);
-    --accent-border: rgba(192, 132, 252, 0.5);
-    --social-bg: rgba(47, 48, 58, 0.5);
-    --shadow:
-      rgba(0, 0, 0, 0.4) 0 10px 15px -3px, rgba(0, 0, 0, 0.25) 0 4px 6px -2px;
-  }
+/* Premium black dark mode */
+[data-theme="dark"] {
+  color-scheme: dark;
+  --sidebar-bg: #4338ca;
+  --sidebar-text: rgba(255, 255, 255, 0.95);
+  --sidebar-text-muted: rgba(255, 255, 255, 0.65);
+  --sidebar-hover: rgba(255, 255, 255, 0.12);
+  --sidebar-active: rgba(255, 255, 255, 0.22);
+  --text: #a1a1aa;
+  --text-h: #fafafa;
+  --text-muted: #71717a;
+  --bg: #0a0a0a;
+  --border: #1f1f1f;
+  --code-bg: #141414;
+  --accent: #818cf8;
+  --accent-bg: rgba(129, 140, 248, 0.2);
+  --accent-border: rgba(129, 140, 248, 0.45);
+  --social-bg: rgba(20, 20, 20, 0.8);
+  --shadow:
+    rgba(0, 0, 0, 0.5) 0 8px 24px -4px, rgba(0, 0, 0, 0.3) 0 4px 10px -2px;
+  --shadow-bubble: 0 2px 12px rgba(0, 0, 0, 0.4), 0 1px 3px rgba(0, 0, 0, 0.25);
 
-  #social .button-icon {
-    filter: invert(1) brightness(2);
-  }
+  --color-receipt: #34d399;
+  --color-receipt-bg: rgba(52, 211, 153, 0.18);
+  --color-delivery: #f87171;
+  --color-delivery-bg: rgba(248, 113, 113, 0.18);
+  --color-transfer: #60a5fa;
+  --color-transfer-bg: rgba(96, 165, 250, 0.2);
+  --color-adjustment: #fbbf24;
+  --color-adjustment-bg: rgba(251, 191, 36, 0.2);
+  --color-draft: #9ca3af;
+  --color-draft-bg: rgba(107, 114, 128, 0.22);
+  --color-waiting: #facc15;
+  --color-waiting-bg: rgba(250, 204, 21, 0.18);
+  --color-ready: #38bdf8;
+  --color-ready-bg: rgba(56, 189, 248, 0.2);
+  --color-done: #34d399;
+  --color-done-bg: rgba(52, 211, 153, 0.18);
+  --color-canceled: #f87171;
+  --color-canceled-bg: rgba(248, 113, 113, 0.18);
 }
 
 body {

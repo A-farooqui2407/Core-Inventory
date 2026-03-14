@@ -32,9 +32,19 @@ export function AuthProvider({ children }) {
     setToken(null);
   };
 
+  const user = token ? (() => {
+    try {
+      const payload = JSON.parse(atob(token.split('.')[1]));
+      return { sub: payload.sub };
+    } catch {
+      return null;
+    }
+  })() : null;
+
   const value = {
     authEnabled,
     token,
+    user,
     authChecked,
     isAuthenticated: !authEnabled || !!token,
     login,

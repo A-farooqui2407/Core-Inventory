@@ -154,7 +154,7 @@ export default function Movements() {
               <tbody>
                 {items.map((row) => (
                   <tr key={row.id}>
-                    <td>{row.type}</td>
+                    <td><span className={`type-badge type-${row.type.toLowerCase()}`}>{row.type}</span></td>
                     <td>{row.product_sku} – {row.product_name}</td>
                     <td>{row.quantity}</td>
                     <td>{row.from_location_name || '—'}</td>

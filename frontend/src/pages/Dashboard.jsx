@@ -62,8 +62,12 @@ export default function Dashboard() {
 
   const d = summary || {};
   const metrics = [
-    { label: 'Products', value: d.productsCount, sub: 'SKUs' },
+    { label: 'Products in stock', value: d.productsCount, sub: 'SKUs' },
     { label: 'Total quantity', value: d.totalQuantity, sub: 'units' },
+    { label: 'Low / out of stock', value: d.lowStockCount ?? 0, sub: 'items' },
+    { label: 'Pending receipts', value: d.pendingReceiptsCount ?? 0, sub: '' },
+    { label: 'Pending deliveries', value: d.pendingDeliveriesCount ?? 0, sub: '' },
+    { label: 'Internal transfers scheduled', value: d.scheduledTransfersCount ?? 0, sub: '' },
     { label: 'Warehouses', value: d.warehousesCount, sub: 'sites' },
     { label: 'Movements', value: d.movementsCount, sub: 'total' },
   ];
@@ -154,7 +158,7 @@ export default function Dashboard() {
                 <span className="chart-bar-label">{type}</span>
                 <div className="chart-bar-wrap">
                   <div
-                    className="chart-bar"
+                    className={`chart-bar chart-bar-${type.toLowerCase()}`}
                     style={{
                       width: `${(count / Math.max(...Object.values(typeCounts))) * 100}%`,
                     }}

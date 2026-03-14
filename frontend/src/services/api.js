@@ -45,6 +45,9 @@ api.interceptors.response.use(
 export const authApi = {
   status: () => api.get('/auth/status'),
   login: (username, password) => api.post('/auth/login', { username, password }),
+  signup: (username, password) => api.post('/auth/signup', { username, password }),
+  forgotPassword: (username) => api.post('/auth/forgot-password', { username }),
+  resetPassword: (username, otp, newPassword) => api.post('/auth/reset-password', { username, otp, newPassword }),
 };
 
 export const productsApi = {
@@ -53,6 +56,22 @@ export const productsApi = {
   create: (body) => api.post('/products', body),
   update: (id, body) => api.put(`/products/${id}`, body),
   delete: (id) => api.delete(`/products/${id}`),
+};
+
+export const categoriesApi = {
+  list: () => api.get('/categories'),
+  get: (id) => api.get(`/categories/${id}`),
+  create: (body) => api.post('/categories', body),
+  update: (id, body) => api.put(`/categories/${id}`, body),
+  delete: (id) => api.delete(`/categories/${id}`),
+};
+
+export const suppliersApi = {
+  list: () => api.get('/suppliers'),
+  get: (id) => api.get(`/suppliers/${id}`),
+  create: (body) => api.post('/suppliers', body),
+  update: (id, body) => api.put(`/suppliers/${id}`, body),
+  delete: (id) => api.delete(`/suppliers/${id}`),
 };
 
 export const warehousesApi = {
@@ -76,6 +95,29 @@ export const movementsApi = {
   get: (id) => api.get(`/movements/${id}`),
   create: (body) => api.post('/movements', body),
   delete: (id) => api.delete(`/movements/${id}`),
+};
+
+export const receiptsApi = {
+  list: (params) => api.get('/receipts', { params }),
+  get: (id) => api.get(`/receipts/${id}`),
+  create: (body) => api.post('/receipts', body),
+  update: (id, body) => api.put(`/receipts/${id}`, body),
+  validate: (id) => api.post(`/receipts/${id}/validate`),
+  delete: (id) => api.delete(`/receipts/${id}`),
+};
+
+export const deliveriesApi = {
+  list: (params) => api.get('/deliveries', { params }),
+  get: (id) => api.get(`/deliveries/${id}`),
+  create: (body) => api.post('/deliveries', body),
+  update: (id, body) => api.put(`/deliveries/${id}`, body),
+  validate: (id) => api.post(`/deliveries/${id}/validate`),
+  delete: (id) => api.delete(`/deliveries/${id}`),
+};
+
+export const stockBalancesApi = {
+  list: (params) => api.get('/stock-balances', { params }),
+  byProduct: (id) => api.get(`/stock-balances/product/${id}`),
 };
 
 export const dashboardApi = {
