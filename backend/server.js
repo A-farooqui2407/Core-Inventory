@@ -97,8 +97,15 @@ async function ensureAllTables() {
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       username TEXT UNIQUE NOT NULL,
       password_hash TEXT NOT NULL,
+      email TEXT,
       created_at TEXT DEFAULT (datetime('now')),
       updated_at TEXT DEFAULT (datetime('now'))
+    )`);
+    try { db.run('ALTER TABLE users ADD COLUMN email TEXT'); } catch (_) {}
+    db.run(`CREATE TABLE IF NOT EXISTS otp_store (
+      username TEXT PRIMARY KEY,
+      otp TEXT NOT NULL,
+      expires_at TEXT NOT NULL
     )`);
     db.run(`CREATE TABLE IF NOT EXISTS stock_balances (
       product_id INTEGER NOT NULL REFERENCES products(id) ON DELETE CASCADE,
@@ -144,7 +151,7 @@ async function ensureAllTables() {
     try { db.run('ALTER TABLE products ADD COLUMN reorder_min_quantity REAL'); } catch (_) {}
     try { db.run('ALTER TABLE products ADD COLUMN reorder_quantity REAL'); } catch (_) {}
     saveDb();
-    console.log('Database tables ensured.');
+    if (process.env.NODE_ENV !== 'production') console.log('Database tables ensured.');
   } catch (e) {
     console.error('Failed to ensure database tables:', e.message);
   }
@@ -153,7 +160,7 @@ async function ensureAllTables() {
 if (process.env.NODE_ENV !== 'test') {
   ensureAllTables().then(() => {
     app.listen(PORT, () => {
-      console.log(`Server running at http://localhost:${PORT}`);
+      if (process.env.NODE_ENV !== 'production') console.log(`Server running at http://localhost:${PORT}`);
     });
   });
 }

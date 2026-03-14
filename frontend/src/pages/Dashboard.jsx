@@ -1,13 +1,44 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { dashboardApi, movementsApi } from '@/services/api';
+import { dashboardApi, movementsApi, warehousesApi, locationsApi, categoriesApi } from '@/services/api';
+
+const DOCUMENT_TYPES = [
+  { value: '', label: 'All types' },
+  { value: 'Receipt', label: 'Receipts' },
+  { value: 'Delivery', label: 'Delivery' },
+  { value: 'Transfer', label: 'Internal' },
+  { value: 'Adjustment', label: 'Adjustments' },
+];
+
+const STATUS_OPTIONS = [
+  { value: '', label: 'All statuses' },
+  { value: 'draft', label: 'Draft' },
+  { value: 'waiting', label: 'Waiting' },
+  { value: 'ready', label: 'Ready' },
+  { value: 'done', label: 'Done' },
+  { value: 'canceled', label: 'Canceled' },
+];
 
 export default function Dashboard() {
   const [summary, setSummary] = useState(null);
   const [recentMovements, setRecentMovements] = useState([]);
+  const [warehouses, setWarehouses] = useState([]);
+  const [locations, setLocations] = useState([]);
+  const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [threshold, setThreshold] = useState(10);
+  const [documentType, setDocumentType] = useState('');
+  const [status, setStatus] = useState('');
+  const [warehouseId, setWarehouseId] = useState('');
+  const [locationId, setLocationId] = useState('');
+  const [categoryId, setCategoryId] = useState('');
+
+  useEffect(() => {
+    warehousesApi.list({ limit: 500 }).then((d) => setWarehouses(d.data?.items ?? [])).catch(() => {});
+    locationsApi.list().then((d) => setLocations(d.data?.items ?? [])).catch(() => {});
+    categoriesApi.list().then((d) => setCategories(d.data?.items ?? [])).catch(() => {});
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -15,32 +46,47 @@ export default function Dashboard() {
       if (!cancelled) setLoading(true);
       if (!cancelled) setError(null);
     });
+    const params = { low_stock_threshold: threshold };
+    if (status) params.status = status;
+    if (categoryId) params.category_id = categoryId;
     dashboardApi
-      .summary({ low_stock_threshold: threshold })
+      .summary(params)
       .then((data) => {
         if (!cancelled) setSummary(data.data);
       })
       .catch((err) => { if (!cancelled) setError(err.message); })
       .finally(() => { if (!cancelled) setLoading(false); });
     return () => { cancelled = true; };
-  }, [threshold]);
+  }, [threshold, status, categoryId]);
 
   useEffect(() => {
     const load = () => {
-      movementsApi.list({ limit: 15 }).then((data) => setRecentMovements(data.data?.items ?? [])).catch(() => {});
+      const params = { limit: 15 };
+      if (documentType) params.type = documentType;
+      if (warehouseId) params.warehouse_id = warehouseId;
+      if (locationId) params.location_id = locationId;
+      if (categoryId) params.category_id = categoryId;
+      movementsApi.list(params).then((data) => setRecentMovements(data.data?.items ?? [])).catch(() => {});
     };
     load();
     const interval = setInterval(load, 30000);
     return () => clearInterval(interval);
-  }, []);
+  }, [documentType, warehouseId, locationId, categoryId]);
 
   useEffect(() => {
     if (!summary) return;
     const interval = setInterval(() => {
-      dashboardApi.summary({ low_stock_threshold: threshold }).then((data) => setSummary(data.data)).catch(() => {});
+      const params = { low_stock_threshold: threshold };
+      if (status) params.status = status;
+      if (categoryId) params.category_id = categoryId;
+      dashboardApi.summary(params).then((data) => setSummary(data.data)).catch(() => {});
     }, 30000);
     return () => clearInterval(interval);
-  }, [summary, threshold]);
+  }, [summary, threshold, status, categoryId]);
+
+  const locationsForWarehouse = warehouseId
+    ? locations.filter((l) => String(l.warehouse_id) === String(warehouseId))
+    : locations;
 
   if (loading && !summary) {
     return (
@@ -83,6 +129,77 @@ export default function Dashboard() {
   return (
     <div className="page dashboard-page">
       <h1>Dashboard</h1>
+
+      <div className="dashboard-filters">
+        <label className="dashboard-filter">
+          <span className="dashboard-filter-label">Document type</span>
+          <select
+            className="input"
+            value={documentType}
+            onChange={(e) => setDocumentType(e.target.value)}
+            aria-label="Filter by document type"
+          >
+            {DOCUMENT_TYPES.map((opt) => (
+              <option key={opt.value || 'all'} value={opt.value}>{opt.label}</option>
+            ))}
+          </select>
+        </label>
+        <label className="dashboard-filter">
+          <span className="dashboard-filter-label">Status</span>
+          <select
+            className="input"
+            value={status}
+            onChange={(e) => setStatus(e.target.value)}
+            aria-label="Filter by status"
+          >
+            {STATUS_OPTIONS.map((opt) => (
+              <option key={opt.value || 'all'} value={opt.value}>{opt.label}</option>
+            ))}
+          </select>
+        </label>
+        <label className="dashboard-filter">
+          <span className="dashboard-filter-label">Warehouse</span>
+          <select
+            className="input"
+            value={warehouseId}
+            onChange={(e) => { setWarehouseId(e.target.value); setLocationId(''); }}
+            aria-label="Filter by warehouse"
+          >
+            <option value="">All warehouses</option>
+            {warehouses.map((w) => (
+              <option key={w.id} value={w.id}>{w.code} – {w.name}</option>
+            ))}
+          </select>
+        </label>
+        <label className="dashboard-filter">
+          <span className="dashboard-filter-label">Location</span>
+          <select
+            className="input"
+            value={locationId}
+            onChange={(e) => setLocationId(e.target.value)}
+            aria-label="Filter by location"
+          >
+            <option value="">All locations</option>
+            {locationsForWarehouse.map((loc) => (
+              <option key={loc.id} value={loc.id}>{loc.code} – {loc.name}</option>
+            ))}
+          </select>
+        </label>
+        <label className="dashboard-filter">
+          <span className="dashboard-filter-label">Category</span>
+          <select
+            className="input"
+            value={categoryId}
+            onChange={(e) => setCategoryId(e.target.value)}
+            aria-label="Filter by product category"
+          >
+            <option value="">All categories</option>
+            {categories.map((c) => (
+              <option key={c.id} value={c.id}>{c.code} – {c.name}</option>
+            ))}
+          </select>
+        </label>
+      </div>
 
       <section className="dashboard-metrics">
         {metrics.map((m) => (

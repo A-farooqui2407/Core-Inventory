@@ -241,7 +241,7 @@
 
 /* Page */
 .page {
-  max-width: 1200px;
+  max-width: 100%;
 }
 
 /* Settings page */
@@ -280,6 +280,46 @@
   font-size: 0.9rem;
   color: var(--text);
   line-height: 1.4;
+}
+
+/* Profile page */
+.profile-cards {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  max-width: 480px;
+}
+
+.profile-field-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.profile-field-label {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--text-h);
+  margin: 0;
+}
+
+.profile-field-card .input:disabled {
+  opacity: 0.9;
+  cursor: default;
+}
+
+.profile-change-password {
+  margin: 0.5rem 0 0;
+  font-size: 0.9rem;
+}
+
+.profile-change-password a {
+  color: var(--accent);
+  text-decoration: none;
+}
+
+.profile-change-password a:hover {
+  text-decoration: underline;
 }
 
 .settings-card-actions {
@@ -512,6 +552,31 @@
   margin: 0 0 0.75rem;
   font-size: 1.35rem;
   font-weight: 600;
+}
+
+.dashboard-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  margin-bottom: 1.25rem;
+  align-items: flex-end;
+}
+
+.dashboard-filter {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  min-width: 0;
+}
+
+.dashboard-filter-label {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--text-h);
+}
+
+.dashboard-filter .input {
+  min-width: 140px;
 }
 
 .dashboard-metrics {

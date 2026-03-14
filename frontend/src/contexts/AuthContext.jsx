@@ -18,8 +18,16 @@ export function AuthProvider({ children }) {
 
   useEffect(() => {
     const handle401 = () => setToken(null);
+    const handleRefresh = (e) => {
+      const t = e.detail?.token;
+      if (t) setToken(t);
+    };
     window.addEventListener('auth:401', handle401);
-    return () => window.removeEventListener('auth:401', handle401);
+    window.addEventListener('auth:refresh', handleRefresh);
+    return () => {
+      window.removeEventListener('auth:401', handle401);
+      window.removeEventListener('auth:refresh', handleRefresh);
+    };
   }, []);
 
   const login = (t) => {

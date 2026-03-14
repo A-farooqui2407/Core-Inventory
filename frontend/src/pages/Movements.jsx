@@ -101,7 +101,7 @@ export default function Movements() {
       reference: form.reference?.trim() || null,
       notes: form.notes?.trim() || null,
     };
-    movementsApi.create(body).then(() => { setFormOpen(false); load(); });
+    movementsApi.create(body).then(() => { setFormOpen(false); load(); }).catch((err) => setError(err.message));
   };
 
   return (
