@@ -7,9 +7,33 @@ export const api = axios.create({
   headers: { 'Content-Type': 'application/json' },
 });
 
+const AUTH_TOKEN_KEY = 'coreinventory_token';
+
+export function getStoredToken() {
+  return localStorage.getItem(AUTH_TOKEN_KEY);
+}
+
+export function setStoredToken(token) {
+  if (token) localStorage.setItem(AUTH_TOKEN_KEY, token);
+  else localStorage.removeItem(AUTH_TOKEN_KEY);
+}
+
+api.interceptors.request.use((config) => {
+  const token = getStoredToken();
+  if (token) config.headers.Authorization = `Bearer ${token}`;
+  return config;
+});
+
 api.interceptors.response.use(
   (res) => res.data,
   (err) => {
+    if (err.response?.status === 401) {
+      setStoredToken(null);
+      window.dispatchEvent(new CustomEvent('auth:401'));
+      const e = new Error(err.response?.data?.error?.message || 'Unauthorized');
+      e.status = 401;
+      return Promise.reject(e);
+    }
     const message =
       err.response?.data?.error?.message ||
       err.message ||
@@ -17,6 +41,11 @@ api.interceptors.response.use(
     return Promise.reject(new Error(message));
   }
 );
+
+export const authApi = {
+  status: () => api.get('/auth/status'),
+  login: (username, password) => api.post('/auth/login', { username, password }),
+};
 
 export const productsApi = {
   list: (params) => api.get('/products', { params }),

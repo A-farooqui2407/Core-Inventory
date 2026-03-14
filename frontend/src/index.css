@@ -54,6 +54,30 @@ body {
   margin: 0;
 }
 
+/* Accessibility: focus visible (Phase 6) */
+*:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/* Skip link (Phase 6) */
+.skip-link {
+  position: absolute;
+  top: -100px;
+  left: 0.5rem;
+  padding: 0.5rem 0.75rem;
+  background: var(--accent);
+  color: #fff;
+  text-decoration: none;
+  border-radius: 6px;
+  z-index: 100;
+  transition: top 0.2s;
+}
+
+.skip-link:focus {
+  top: 0.5rem;
+}
+
 #root {
   width: 1126px;
   max-width: 100%;

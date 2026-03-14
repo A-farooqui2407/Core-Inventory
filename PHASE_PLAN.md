@@ -76,12 +76,12 @@ Single reference document for the implementation roadmap of the CoreInventory re
 
 | # | Task | Status | Notes |
 |---|------|--------|--------|
-| 6.1 | Auth (optional): login, roles, protect routes | | JWT or sessions |
-| 6.2 | Error boundaries, loading states, toasts | | Consistent UX |
-| 6.3 | Responsive layout, accessibility basics | | Mobile-friendly lists/forms |
-| 6.4 | Backend tests (critical routes) | | Jest or similar |
-| 6.5 | Frontend build & backend run in prod mode | | Env checks |
-| 6.6 | Deploy: frontend (static host), backend (Node host), DB | | Docs for deploy steps |
+| 6.1 | Auth (optional): login, roles, protect routes | Done | JWT; AUTH_ENABLED, /api/auth/login, /api/auth/status; frontend Login, ProtectedRoute, 401 handler |
+| 6.2 | Error boundaries, loading states, toasts | Done | ErrorBoundary, ToastProvider, LoadingSpinner; toasts auto-dismiss |
+| 6.3 | Responsive layout, accessibility basics | Done | Skip link, focus-visible, nav wrap; table-wrap overflow |
+| 6.4 | Backend tests (critical routes) | Done | Node --test: health, auth/status, products list |
+| 6.5 | Frontend build & backend run in prod mode | Done | NODE_ENV in .env.example; server exports app, no listen when NODE_ENV=test |
+| 6.6 | Deploy: frontend (static host), backend (Node host), DB | Done | DEPLOY.md with env, build, and host steps |
 
 **Deliverable:** Stable, deployable app with optional auth and better UX.
 

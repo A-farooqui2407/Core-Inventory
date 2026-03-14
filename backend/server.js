@@ -2,6 +2,8 @@ import 'dotenv/config';
 import express from 'express';
 import cors from 'cors';
 import { getDbAsync } from './db/connection.js';
+import { authMiddleware } from './lib/auth.js';
+import authRouter from './routes/auth.js';
 import productsRouter from './routes/products.js';
 import warehousesRouter from './routes/warehouses.js';
 import locationsRouter from './routes/locations.js';
@@ -15,7 +17,7 @@ const PORT = process.env.PORT || 3000;
 app.use(cors({ origin: process.env.CORS_ORIGIN || 'http://localhost:5173' }));
 app.use(express.json());
 
-// Health check (no DB required)
+// Health (always public)
 app.get('/api/health', (_req, res) => {
   res.json({
     ok: true,
@@ -24,7 +26,6 @@ app.get('/api/health', (_req, res) => {
   });
 });
 
-// Health check including DB connection
 app.get('/api/health/db', async (_req, res) => {
   try {
     const db = await getDbAsync();
@@ -44,7 +45,15 @@ app.get('/api/health/db', async (_req, res) => {
   }
 });
 
-// Phase 2: Core API routes
+// Auth (optional): login and status — no token required
+app.use('/api/auth', authRouter);
+
+// Optional auth: protect all other /api routes when AUTH_ENABLED=true
+app.use('/api', (req, res, next) => {
+  if (req.path.startsWith('/auth')) return next();
+  authMiddleware(req, res, next);
+});
+
 app.use('/api/products', productsRouter);
 app.use('/api/warehouses', warehousesRouter);
 app.use('/api/locations', locationsRouter);
@@ -52,6 +61,10 @@ app.use('/api/movements', movementsRouter);
 app.use('/api/dashboard', dashboardRouter);
 app.use('/api/scheduled', scheduledRouter);
 
-app.listen(PORT, () => {
-  console.log(`Server running at http://localhost:${PORT}`);
-});
+export { app };
+
+if (process.env.NODE_ENV !== 'test') {
+  app.listen(PORT, () => {
+    console.log(`Server running at http://localhost:${PORT}`);
+  });
+}
