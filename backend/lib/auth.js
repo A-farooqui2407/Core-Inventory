@@ -4,6 +4,7 @@
  * Use header: Authorization: Bearer <token>
  */
 import jwt from 'jsonwebtoken';
+import crypto from 'crypto';
 
 const AUTH_ENABLED = process.env.AUTH_ENABLED === 'true';
 const SECRET = process.env.JWT_SECRET || 'coreinventory-dev-secret-change-in-production';
@@ -24,6 +25,10 @@ export function verifyToken(token) {
   } catch {
     return null;
   }
+}
+
+export function hashPassword(password) {
+  return crypto.createHash('sha256').update(String(password)).digest('hex');
 }
 
 export function checkCredentials(username, password) {

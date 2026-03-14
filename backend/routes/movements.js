@@ -2,6 +2,7 @@ import { Router } from 'express';
 import { getDbAsync, saveDb } from '../db/connection.js';
 import { queryAll, queryOne, getLastId } from '../lib/db.js';
 import { success, notFound, validationError } from '../lib/response.js';
+import { applyLocationBalance } from '../lib/stockBalances.js';
 
 const TYPES = ['Receipt', 'Delivery', 'Transfer', 'Adjustment'];
 
@@ -110,6 +111,12 @@ router.post('/', async (req, res) => {
     );
     const id = getLastId(db);
     db.run('UPDATE products SET quantity = ?, updated_at = datetime("now") WHERE id = ?', [newQty, pid]);
+    if (type === 'Receipt' && Number.isInteger(toId)) applyLocationBalance(db, pid, toId, qty);
+    if (type === 'Delivery' && Number.isInteger(fromId)) applyLocationBalance(db, pid, fromId, -Math.abs(qty));
+    if (type === 'Transfer' && Number.isInteger(fromId) && Number.isInteger(toId)) {
+      applyLocationBalance(db, pid, fromId, -Math.abs(qty));
+      applyLocationBalance(db, pid, toId, qty);
+    }
     saveDb();
     const row = queryOne(db, `
       SELECT m.*, p.name as product_name, p.sku as product_sku,
