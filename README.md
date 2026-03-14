@@ -44,18 +44,23 @@ coreinventory
  │   ├ models
  │   └ server.js
 6. Installation
-# clone repo
-git clone <repo-url>
 
-# frontend
-cd frontend
-npm install
-npm run dev
-
-# backend
+**Backend (from repo root):**
+```bash
 cd backend
 npm install
-npm run dev
+npm run init-db   # creates SQLite DB at backend/data/coreinventory.db
+npm run dev       # http://localhost:3000
+```
+
+**Frontend:**
+```bash
+cd frontend
+npm install
+npm run dev       # http://localhost:5173, proxies /api to backend
+```
+
+**Verify:** Open `http://localhost:3000/api/health` and `http://localhost:3000/api/health/db` for API and DB status.
 7. Future Improvements
 • AI demand forecasting
 • Barcode scanning
