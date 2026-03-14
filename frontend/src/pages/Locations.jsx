@@ -1,7 +1,9 @@
 import { useState, useEffect } from 'react';
 import { locationsApi, warehousesApi } from '@/services/api';
+import { useToast } from '@/contexts/ToastContext';
 
 export default function Locations() {
+  const { addToast } = useToast();
   const [items, setItems] = useState([]);
   const [warehouses, setWarehouses] = useState([]);
   const [warehouseId, setWarehouseId] = useState('');
@@ -70,14 +72,14 @@ export default function Locations() {
       parent_id: form.parent_id ? parseInt(form.parent_id, 10) : null,
     };
     if (editing) {
-      locationsApi.update(editing.id, { name: body.name, code: body.code, parent_id: body.parent_id }).then(() => { setFormOpen(false); load(); });
+      locationsApi.update(editing.id, { name: body.name, code: body.code, parent_id: body.parent_id }).then(() => { addToast('Location updated successfully', 'success'); setFormOpen(false); load(); }).catch(() => addToast('Failed to update location', 'error'));
     } else {
-      locationsApi.create(body).then(() => { setFormOpen(false); load(); }).catch((err) => setError(err.message));
+      locationsApi.create(body).then(() => { addToast('Location added successfully', 'success'); setFormOpen(false); load(); }).catch(() => addToast('Failed to add location', 'error'));
     }
   };
 
   const handleDelete = (id) => {
-    locationsApi.delete(id).then(() => { setDeleteConfirm(null); load(); });
+    locationsApi.delete(id).then(() => { addToast('Location deleted successfully', 'success'); setDeleteConfirm(null); load(); }).catch(() => addToast('Failed to delete location', 'error'));
   };
 
   return (

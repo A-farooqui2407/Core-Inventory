@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { useTheme } from '@/contexts/ThemeContext';
+import { useToast } from '@/contexts/ToastContext';
 import { authApi } from '@/services/api';
 
 function SunIcon() {
@@ -24,6 +25,7 @@ function MoonIcon() {
 export default function Login() {
   const { login } = useAuth();
   const { isDark, setTheme } = useTheme();
+  const { addToast } = useToast();
   const navigate = useNavigate();
   const location = useLocation();
   const [username, setUsername] = useState('');
@@ -36,10 +38,12 @@ export default function Login() {
     setError(null);
     setLoading(true);
     authApi.login(username, password).then((data) => {
+      addToast('Welcome back!', 'success');
       login(data.data?.token);
       const from = location.state?.from?.pathname ?? '/';
       navigate(from, { replace: true });
     }).catch((err) => {
+      addToast('Invalid username or password', 'error');
       setError(err.message || 'Login failed');
       setLoading(false);
     });

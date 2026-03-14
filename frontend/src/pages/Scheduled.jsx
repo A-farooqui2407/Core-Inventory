@@ -1,10 +1,12 @@
 import { useState, useEffect } from 'react';
 import { scheduledApi, productsApi, locationsApi } from '@/services/api';
+import { useToast } from '@/contexts/ToastContext';
 
 const TYPES = ['Receipt', 'Delivery', 'Transfer', 'Pick', 'Stocktake'];
 const STATUSES = [{ value: '', label: 'All' }, { value: 'pending', label: 'Pending' }, { value: 'done', label: 'Done' }, { value: 'cancelled', label: 'Cancelled' }];
 
 export default function Scheduled() {
+  const { addToast } = useToast();
   const [items, setItems] = useState([]);
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
@@ -61,11 +63,11 @@ export default function Scheduled() {
       reference: form.reference?.trim() || null,
       notes: form.notes?.trim() || null,
     };
-    scheduledApi.create(body).then(() => { setFormOpen(false); refetch(); });
+    scheduledApi.create(body).then(() => { addToast('Transfer created successfully', 'success'); setFormOpen(false); refetch(); }).catch(() => addToast('Failed to create transfer', 'error'));
   };
 
   const setStatus = (id, status) => {
-    scheduledApi.update(id, { status }).then(refetch);
+    scheduledApi.update(id, { status }).then(() => { addToast('Transfer updated successfully', 'success'); refetch(); }).catch(() => addToast('Failed to update transfer', 'error'));
   };
 
   return (

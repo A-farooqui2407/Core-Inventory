@@ -1,7 +1,9 @@
 import { useState, useEffect } from 'react';
 import { warehousesApi } from '@/services/api';
+import { useToast } from '@/contexts/ToastContext';
 
 export default function Warehouses() {
+  const { addToast } = useToast();
   const [items, setItems] = useState([]);
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
@@ -67,14 +69,14 @@ export default function Warehouses() {
     if (!form.name?.trim() || !form.code?.trim()) return;
     const body = { name: form.name.trim(), code: form.code.trim(), address: form.address?.trim() || null };
     if (editing) {
-      warehousesApi.update(editing.id, body).then(() => { setFormOpen(false); load(); });
+      warehousesApi.update(editing.id, body).then(() => { addToast('Warehouse updated successfully', 'success'); setFormOpen(false); load(); }).catch(() => addToast('Failed to update warehouse', 'error'));
     } else {
-      warehousesApi.create(body).then(() => { setFormOpen(false); load(); });
+      warehousesApi.create(body).then(() => { addToast('Warehouse created successfully', 'success'); setFormOpen(false); load(); }).catch(() => addToast('Failed to create warehouse', 'error'));
     }
   };
 
   const handleDelete = (id) => {
-    warehousesApi.delete(id).then(() => { setDeleteConfirm(null); load(); });
+    warehousesApi.delete(id).then(() => { addToast('Warehouse deleted successfully', 'success'); setDeleteConfirm(null); load(); }).catch(() => addToast('Failed to delete warehouse', 'error'));
   };
 
   return (

@@ -2,6 +2,7 @@ import { useState, useRef, useEffect } from 'react';
 import { Link, Outlet, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { useTheme } from '@/contexts/ThemeContext';
+import { useToast } from '@/contexts/ToastContext';
 
 const OPERATIONS_LINKS = [
   { path: '/receipts', label: 'Receipts' },
@@ -30,6 +31,7 @@ export default function Layout() {
   const location = useLocation();
   const { authEnabled, logout } = useAuth();
   const { isDark, setTheme } = useTheme();
+  const { addToast } = useToast();
   const [operationsOpen, setOperationsOpen] = useState(false);
   const operationsRef = useRef(null);
 
@@ -101,7 +103,7 @@ export default function Layout() {
                   <Link to="/profile" className={isActive('/profile') ? 'active' : ''}>My Profile</Link>
                 </li>
                 <li>
-                  <button type="button" className="sidebar-logout" onClick={logout}>Logout</button>
+                  <button type="button" className="sidebar-logout" onClick={() => { logout(); addToast('Logged out successfully', 'success'); }}>Logout</button>
                 </li>
               </ul>
             </nav>

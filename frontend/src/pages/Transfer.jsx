@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { DndContext, useDraggable, useDroppable } from '@dnd-kit/core';
 import { productsApi, locationsApi, movementsApi } from '@/services/api';
+import { useToast } from '@/contexts/ToastContext';
 
 function DraggableProduct({ id, product }) {
   const { attributes, listeners, setNodeRef, isDragging } = useDraggable({ id: `product-${id}`, data: { productId: id, product } });
@@ -29,6 +30,7 @@ function DropZone({ toLocation, children }) {
 }
 
 export default function Transfer() {
+  const { addToast } = useToast();
   const [products, setProducts] = useState([]);
   const [locations, setLocations] = useState([]);
   const [fromLocationId, setFromLocationId] = useState('');
@@ -83,10 +85,11 @@ export default function Transfer() {
       to_location_id: toId,
       notes: 'Quick transfer (drag-and-drop)',
     }).then(() => {
+      addToast('Transfer created successfully', 'success');
       setConfirmOpen(false);
       setPendingTransfer(null);
       productsApi.list({ limit: 500 }).then((data) => setProducts((data.data?.items ?? []).filter((p) => p.quantity > 0)));
-    }).catch((err) => setError(err.message));
+    }).catch((err) => { setError(err.message); addToast('Failed to create transfer', 'error'); });
   };
 
   const toLocation = locations.find((l) => l.id === (toLocationId ? parseInt(toLocationId, 10) : null)) || locations[0];

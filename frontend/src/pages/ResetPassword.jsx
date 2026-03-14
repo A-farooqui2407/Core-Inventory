@@ -1,8 +1,10 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
+import { useToast } from '@/contexts/ToastContext';
 import { authApi } from '@/services/api';
 
 export default function ResetPassword() {
+  const { addToast } = useToast();
   const [username, setUsername] = useState('');
   const [otp, setOtp] = useState('');
   const [newPassword, setNewPassword] = useState('');
@@ -24,9 +26,11 @@ export default function ResetPassword() {
     }
     setLoading(true);
     authApi.resetPassword(username.trim(), otp.trim(), newPassword).then(() => {
+      addToast('Password reset successfully', 'success');
       setSuccess(true);
       setLoading(false);
     }).catch((err) => {
+      addToast('Something went wrong, please try again', 'error');
       setError(err.message || 'Reset failed');
       setLoading(false);
     });

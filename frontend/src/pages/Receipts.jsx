@@ -1,9 +1,11 @@
 import { useState, useEffect } from 'react';
 import { receiptsApi, suppliersApi, productsApi, locationsApi } from '@/services/api';
+import { useToast } from '@/contexts/ToastContext';
 
 const STATUSES = ['draft', 'waiting', 'ready', 'done', 'canceled'];
 
 export default function Receipts() {
+  const { addToast } = useToast();
   const [items, setItems] = useState([]);
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
@@ -88,9 +90,9 @@ export default function Receipts() {
     }));
     const body = { supplier_id: form.supplier_id ? parseInt(form.supplier_id, 10) : null, reference: form.reference || null, notes: form.notes || null, lines };
     if (editing) {
-      receiptsApi.update(editing.id, body).then(() => { setFormOpen(false); setRefreshKey((k) => k + 1); }).catch((err) => setError(err.message));
+      receiptsApi.update(editing.id, body).then(() => { addToast('Receipt updated successfully', 'success'); setFormOpen(false); setRefreshKey((k) => k + 1); }).catch(() => addToast('Failed to update receipt', 'error'));
     } else {
-      receiptsApi.create(body).then(() => { setFormOpen(false); setRefreshKey((k) => k + 1); }).catch((err) => setError(err.message));
+      receiptsApi.create(body).then(() => { addToast('Receipt created successfully', 'success'); setFormOpen(false); setRefreshKey((k) => k + 1); }).catch(() => addToast('Failed to create receipt', 'error'));
     }
   };
 
