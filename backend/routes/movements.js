@@ -26,18 +26,20 @@ function parseQuery(req) {
 // GET /api/movements
 router.get('/', async (req, res) => {
   try {
+    const userId = req.user?.userId ?? 1;
     const db = await getDbAsync();
     const { limit, offset, type, product_id, location_id, warehouse_id, category_id, sort, order } = parseQuery(req);
     let sql = `
       SELECT m.*, p.name as product_name, p.sku as product_sku,
         fl.name as from_location_name, tl.name as to_location_name
       FROM stock_movements m
-      JOIN products p ON m.product_id = p.id
+      JOIN products p ON m.product_id = p.id AND p.user_id = ?
       LEFT JOIN locations fl ON m.from_location_id = fl.id
       LEFT JOIN locations tl ON m.to_location_id = tl.id
     `;
-    const params = [];
-    const conditions = [];
+    const params = [userId];
+    const conditions = ['m.user_id = ?'];
+    params.push(userId);
     if (type && TYPES.includes(type)) {
       conditions.push('m.type = ?');
       params.push(type);
@@ -64,12 +66,12 @@ router.get('/', async (req, res) => {
     const items = queryAll(db, sql, params);
     let countSql = `
       SELECT COUNT(*) as total FROM stock_movements m
-      JOIN products p ON m.product_id = p.id
+      JOIN products p ON m.product_id = p.id AND p.user_id = ?
       LEFT JOIN locations fl ON m.from_location_id = fl.id
       LEFT JOIN locations tl ON m.to_location_id = tl.id
     `;
-    if (conditions.length) countSql += ' WHERE ' + conditions.join(' AND ');
-    const countParams = conditions.length ? params.slice(0, -2) : [];
+    countSql += ' WHERE ' + conditions.join(' AND ');
+    const countParams = params.slice(0, -2);
     const countRow = queryOne(db, countSql, countParams);
     const total = countRow?.total ?? 0;
     return success(res, { items, total, limit, offset });
@@ -81,6 +83,7 @@ router.get('/', async (req, res) => {
 // GET /api/movements/:id
 router.get('/:id', async (req, res) => {
   try {
+    const userId = req.user?.userId ?? 1;
     const db = await getDbAsync();
     const id = parseInt(req.params.id, 10);
     if (Number.isNaN(id)) return validationError(res, 'Invalid movement id');
@@ -88,11 +91,11 @@ router.get('/:id', async (req, res) => {
       SELECT m.*, p.name as product_name, p.sku as product_sku,
         fl.name as from_location_name, tl.name as to_location_name
       FROM stock_movements m
-      JOIN products p ON m.product_id = p.id
+      JOIN products p ON m.product_id = p.id AND p.user_id = ?
       LEFT JOIN locations fl ON m.from_location_id = fl.id
       LEFT JOIN locations tl ON m.to_location_id = tl.id
-      WHERE m.id = ?
-    `, [id]);
+      WHERE m.id = ? AND m.user_id = ?
+    `, [userId, id, userId]);
     if (!row) return notFound(res, 'Stock movement');
     return success(res, row);
   } catch (err) {
@@ -103,6 +106,7 @@ router.get('/:id', async (req, res) => {
 // POST /api/movements
 router.post('/', async (req, res) => {
   try {
+    const userId = req.user?.userId ?? 1;
     const { type, product_id, quantity, from_location_id, to_location_id, reference, notes } = req.body || {};
     if (!TYPES.includes(type)) return validationError(res, `type must be one of: ${TYPES.join(', ')}`);
     const pid = parseInt(product_id, 10);
@@ -110,7 +114,7 @@ router.post('/', async (req, res) => {
     const qty = parseFloat(quantity);
     if (Number.isNaN(qty) || qty === 0) return validationError(res, 'quantity is required and non-zero');
     const db = await getDbAsync();
-    const product = queryOne(db, 'SELECT id, quantity FROM products WHERE id = ?', [pid]);
+    const product = queryOne(db, 'SELECT id, quantity FROM products WHERE id = ? AND user_id = ?', [pid, userId]);
     if (!product) return notFound(res, 'Product');
     const fromId = from_location_id != null ? parseInt(from_location_id, 10) : null;
     const toId = to_location_id != null ? parseInt(to_location_id, 10) : null;
@@ -126,16 +130,16 @@ router.post('/', async (req, res) => {
     const newQty = product.quantity + delta;
     if (newQty < 0) return validationError(res, 'Insufficient product quantity');
     db.run(
-      `INSERT INTO stock_movements (type, product_id, quantity, from_location_id, to_location_id, reference, notes) VALUES (?, ?, ?, ?, ?, ?, ?)`,
-      [type, pid, qty, Number.isInteger(fromId) ? fromId : null, Number.isInteger(toId) ? toId : null, reference?.trim() ?? null, notes?.trim() ?? null]
+      `INSERT INTO stock_movements (type, product_id, quantity, from_location_id, to_location_id, reference, notes, user_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+      [type, pid, qty, Number.isInteger(fromId) ? fromId : null, Number.isInteger(toId) ? toId : null, reference?.trim() ?? null, notes?.trim() ?? null, userId]
     );
     const id = getLastId(db);
     db.run('UPDATE products SET quantity = ?, updated_at = datetime("now") WHERE id = ?', [newQty, pid]);
-    if (type === 'Receipt' && Number.isInteger(toId)) applyLocationBalance(db, pid, toId, qty);
-    if (type === 'Delivery' && Number.isInteger(fromId)) applyLocationBalance(db, pid, fromId, -Math.abs(qty));
+    if (type === 'Receipt' && Number.isInteger(toId)) applyLocationBalance(db, pid, toId, qty, userId);
+    if (type === 'Delivery' && Number.isInteger(fromId)) applyLocationBalance(db, pid, fromId, -Math.abs(qty), userId);
     if (type === 'Transfer' && Number.isInteger(fromId) && Number.isInteger(toId)) {
-      applyLocationBalance(db, pid, fromId, -Math.abs(qty));
-      applyLocationBalance(db, pid, toId, qty);
+      applyLocationBalance(db, pid, fromId, -Math.abs(qty), userId);
+      applyLocationBalance(db, pid, toId, qty, userId);
     }
     saveDb();
     const row = queryOne(db, `
@@ -156,12 +160,13 @@ router.post('/', async (req, res) => {
 // DELETE /api/movements/:id — optional: allow delete and reverse product quantity for audit integrity you might disallow
 router.delete('/:id', async (req, res) => {
   try {
+    const userId = req.user?.userId ?? 1;
     const id = parseInt(req.params.id, 10);
     if (Number.isNaN(id)) return validationError(res, 'Invalid movement id');
     const db = await getDbAsync();
-    const row = queryOne(db, 'SELECT * FROM stock_movements WHERE id = ?', [id]);
+    const row = queryOne(db, 'SELECT * FROM stock_movements WHERE id = ? AND user_id = ?', [id, userId]);
     if (!row) return notFound(res, 'Stock movement');
-    db.run('DELETE FROM stock_movements WHERE id = ?', [id]);
+    db.run('DELETE FROM stock_movements WHERE id = ? AND user_id = ?', [id, userId]);
     saveDb();
     return success(res, { deleted: id });
   } catch (err) {

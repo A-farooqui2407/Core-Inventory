@@ -174,6 +174,43 @@ db.run(`CREATE TABLE IF NOT EXISTS users (
   updated_at TEXT DEFAULT (datetime('now'))
 )`);
 
+// Migration 5: multi-user data isolation — add user_id to all data tables
+const v5 = db.prepare('SELECT 1 FROM _schema_version WHERE version = 5').get();
+if (!v5) {
+  try {
+    const tables = [
+      'products',
+      'warehouses',
+      'locations',
+      'stock_movements',
+      'scheduled_operations',
+      'categories',
+      'suppliers',
+      'receipt_documents',
+      'delivery_documents',
+      'stock_balances',
+    ];
+    for (const table of tables) {
+      try {
+        db.run(`ALTER TABLE ${table} ADD COLUMN user_id INTEGER REFERENCES users(id)`);
+      } catch (e) {
+        if (!e.message || !e.message.includes('duplicate column')) throw e;
+      }
+    }
+    // Backfill existing rows so nothing breaks (first user owns legacy data)
+    for (const table of tables) {
+      try {
+        db.run(`UPDATE ${table} SET user_id = 1 WHERE user_id IS NULL`);
+      } catch (_) { /* table might not have been created yet */ }
+    }
+    db.run(`INSERT INTO _schema_version (version) VALUES (5)`);
+    saveDb();
+    if (process.env.NODE_ENV !== 'production') console.log('Migration 5 (multi-user user_id) applied.');
+  } catch (e) {
+    console.error('Migration 5 error:', e.message);
+  }
+}
+
 saveDb();
 
 if (process.env.NODE_ENV !== 'production') console.log('Database initialized.');

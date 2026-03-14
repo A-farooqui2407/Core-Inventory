@@ -18,10 +18,11 @@ function parseQuery(req) {
 // GET /api/deliveries
 router.get('/', async (req, res) => {
   try {
+    const userId = req.user?.userId ?? 1;
     const db = await getDbAsync();
     const { limit, offset, status } = parseQuery(req);
-    let sql = 'SELECT * FROM delivery_documents WHERE 1=1';
-    const params = [];
+    let sql = 'SELECT * FROM delivery_documents WHERE user_id = ?';
+    const params = [userId];
     if (status && STATUSES.includes(status)) {
       sql += ' AND status = ?';
       params.push(status);
@@ -29,9 +30,12 @@ router.get('/', async (req, res) => {
     sql += ' ORDER BY id DESC LIMIT ? OFFSET ?';
     params.push(limit, offset);
     const items = queryAll(db, sql, params);
-    let countSql = 'SELECT COUNT(*) as total FROM delivery_documents WHERE 1=1';
-    const countParams = status && STATUSES.includes(status) ? [status] : [];
-    if (status && STATUSES.includes(status)) countSql += ' AND status = ?';
+    let countSql = 'SELECT COUNT(*) as total FROM delivery_documents WHERE user_id = ?';
+    const countParams = [userId];
+    if (status && STATUSES.includes(status)) {
+      countSql += ' AND status = ?';
+      countParams.push(status);
+    }
     const countRow = queryOne(db, countSql, countParams);
     const total = countRow?.total ?? 0;
     return success(res, { items, total, limit, offset });
@@ -43,10 +47,11 @@ router.get('/', async (req, res) => {
 // GET /api/deliveries/:id (with lines)
 router.get('/:id', async (req, res) => {
   try {
+    const userId = req.user?.userId ?? 1;
     const db = await getDbAsync();
     const id = parseInt(req.params.id, 10);
     if (Number.isNaN(id)) return validationError(res, 'Invalid delivery id');
-    const doc = queryOne(db, 'SELECT * FROM delivery_documents WHERE id = ?', [id]);
+    const doc = queryOne(db, 'SELECT * FROM delivery_documents WHERE id = ? AND user_id = ?', [id, userId]);
     if (!doc) return notFound(res, 'Delivery order');
     const lines = queryAll(db, `
       SELECT dl.*, p.name as product_name, p.sku as product_sku, p.unit, p.quantity as product_total_qty,
@@ -65,11 +70,12 @@ router.get('/:id', async (req, res) => {
 // POST /api/deliveries
 router.post('/', async (req, res) => {
   try {
+    const userId = req.user?.userId ?? 1;
     const { reference, notes, lines } = req.body || {};
     const db = await getDbAsync();
     db.run(
-      'INSERT INTO delivery_documents (status, reference, notes, updated_at) VALUES (?, ?, ?, datetime("now"))',
-      ['draft', reference?.trim() ?? null, notes?.trim() ?? null]
+      'INSERT INTO delivery_documents (status, reference, notes, user_id, updated_at) VALUES (?, ?, ?, ?, datetime("now"))',
+      ['draft', reference?.trim() ?? null, notes?.trim() ?? null, userId]
     );
     const deliveryId = getLastId(db);
     if (Array.isArray(lines) && lines.length > 0) {
@@ -95,17 +101,18 @@ router.post('/', async (req, res) => {
 // PUT /api/deliveries/:id
 router.put('/:id', async (req, res) => {
   try {
+    const userId = req.user?.userId ?? 1;
     const id = parseInt(req.params.id, 10);
     if (Number.isNaN(id)) return validationError(res, 'Invalid delivery id');
     const { reference, notes, status, lines } = req.body || {};
     const db = await getDbAsync();
-    const existing = queryOne(db, 'SELECT * FROM delivery_documents WHERE id = ?', [id]);
+    const existing = queryOne(db, 'SELECT * FROM delivery_documents WHERE id = ? AND user_id = ?', [id, userId]);
     if (!existing) return notFound(res, 'Delivery order');
     if (existing.status === 'done') return validationError(res, 'Cannot edit a validated delivery');
     const ref = reference !== undefined ? (reference?.trim() || null) : existing.reference;
     const n = notes !== undefined ? (notes?.trim() || null) : existing.notes;
     const newStatus = status && STATUSES.includes(status) ? status : existing.status;
-    db.run('UPDATE delivery_documents SET reference=?, notes=?, status=?, updated_at=datetime("now") WHERE id=?', [ref, n, newStatus, id]);
+    db.run('UPDATE delivery_documents SET reference=?, notes=?, status=?, updated_at=datetime("now") WHERE id=? AND user_id=?', [ref, n, newStatus, id, userId]);
     if (Array.isArray(lines)) {
       db.run('DELETE FROM delivery_lines WHERE delivery_id = ?', [id]);
       for (const line of lines) {
@@ -127,28 +134,29 @@ router.put('/:id', async (req, res) => {
 // POST /api/deliveries/:id/validate — set status=done, create movements, decrease stock
 router.post('/:id/validate', async (req, res) => {
   try {
+    const userId = req.user?.userId ?? 1;
     const id = parseInt(req.params.id, 10);
     if (Number.isNaN(id)) return validationError(res, 'Invalid delivery id');
     const db = await getDbAsync();
-    const doc = queryOne(db, 'SELECT * FROM delivery_documents WHERE id = ?', [id]);
+    const doc = queryOne(db, 'SELECT * FROM delivery_documents WHERE id = ? AND user_id = ?', [id, userId]);
     if (!doc) return notFound(res, 'Delivery order');
     if (doc.status === 'done') return validationError(res, 'Delivery already validated');
     const lines = queryAll(db, 'SELECT * FROM delivery_lines WHERE delivery_id = ?', [id]);
     if (lines.length === 0) return validationError(res, 'Delivery has no lines');
     for (const line of lines) {
-      const product = queryOne(db, 'SELECT id, quantity FROM products WHERE id = ?', [line.product_id]);
+      const product = queryOne(db, 'SELECT id, quantity FROM products WHERE id = ? AND user_id = ?', [line.product_id, userId]);
       if (!product) return validationError(res, `Product id ${line.product_id} not found`);
       const qty = Math.abs(line.quantity);
       if (product.quantity < qty) return validationError(res, `Insufficient stock for product id ${line.product_id} (has ${product.quantity}, need ${qty})`);
       db.run(
-        'INSERT INTO stock_movements (type, product_id, quantity, from_location_id, to_location_id, reference, notes) VALUES (?, ?, ?, ?, ?, ?, ?)',
-        ['Delivery', line.product_id, qty, line.from_location_id, null, doc.reference, `Delivery #${id}`]
+        'INSERT INTO stock_movements (type, product_id, quantity, from_location_id, to_location_id, reference, notes, user_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+        ['Delivery', line.product_id, qty, line.from_location_id, null, doc.reference, `Delivery #${id}`, userId]
       );
       const newQty = product.quantity - qty;
       db.run('UPDATE products SET quantity = ?, updated_at = datetime("now") WHERE id = ?', [newQty, line.product_id]);
-      if (line.from_location_id) applyLocationBalance(db, line.product_id, line.from_location_id, -qty);
+      if (line.from_location_id) applyLocationBalance(db, line.product_id, line.from_location_id, -qty, userId);
     }
-    db.run("UPDATE delivery_documents SET status = 'done', updated_at = datetime('now') WHERE id = ?", [id]);
+    db.run("UPDATE delivery_documents SET status = 'done', updated_at = datetime('now') WHERE id = ? AND user_id = ?", [id, userId]);
     saveDb();
     const row = queryOne(db, 'SELECT * FROM delivery_documents WHERE id = ?', [id]);
     return success(res, row);
@@ -160,14 +168,15 @@ router.post('/:id/validate', async (req, res) => {
 // DELETE /api/deliveries/:id
 router.delete('/:id', async (req, res) => {
   try {
+    const userId = req.user?.userId ?? 1;
     const id = parseInt(req.params.id, 10);
     if (Number.isNaN(id)) return validationError(res, 'Invalid delivery id');
     const db = await getDbAsync();
-    const existing = queryOne(db, 'SELECT * FROM delivery_documents WHERE id = ?', [id]);
+    const existing = queryOne(db, 'SELECT * FROM delivery_documents WHERE id = ? AND user_id = ?', [id, userId]);
     if (!existing) return notFound(res, 'Delivery order');
     if (existing.status === 'done') return validationError(res, 'Cannot delete a validated delivery');
     db.run('DELETE FROM delivery_lines WHERE delivery_id = ?', [id]);
-    db.run('DELETE FROM delivery_documents WHERE id = ?', [id]);
+    db.run('DELETE FROM delivery_documents WHERE id = ? AND user_id = ?', [id, userId]);
     saveDb();
     return success(res, { deleted: id });
   } catch (err) {

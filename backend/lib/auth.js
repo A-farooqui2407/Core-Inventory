@@ -2,6 +2,9 @@
  * Optional JWT auth. When AUTH_ENABLED=true, protect API routes.
  * Login: POST /api/auth/login { username, password } -> { token }.
  * Use header: Authorization: Bearer <token>
+ *
+ * JWT payload: { sub: username, userId: user.id }.
+ * In protected routes, req.user.sub and req.user.userId are available.
  */
 import jwt from 'jsonwebtoken';
 import crypto from 'crypto';

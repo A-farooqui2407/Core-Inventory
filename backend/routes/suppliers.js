@@ -13,10 +13,11 @@ function normalizeIndianMobile(value) {
   return stripped;
 }
 
-router.get('/', async (_req, res) => {
+router.get('/', async (req, res) => {
   try {
+    const userId = req.user?.userId ?? 1;
     const db = await getDbAsync();
-    const items = queryAll(db, 'SELECT * FROM suppliers ORDER BY name');
+    const items = queryAll(db, 'SELECT * FROM suppliers WHERE user_id = ? ORDER BY name', [userId]);
     return success(res, { items });
   } catch (err) {
     return res.status(500).json({ ok: false, error: { code: 'SERVER_ERROR', message: err.message } });
@@ -25,10 +26,11 @@ router.get('/', async (_req, res) => {
 
 router.get('/:id', async (req, res) => {
   try {
+    const userId = req.user?.userId ?? 1;
     const db = await getDbAsync();
     const id = parseInt(req.params.id, 10);
     if (Number.isNaN(id)) return validationError(res, 'Invalid supplier id');
-    const row = queryOne(db, 'SELECT * FROM suppliers WHERE id = ?', [id]);
+    const row = queryOne(db, 'SELECT * FROM suppliers WHERE id = ? AND user_id = ?', [id, userId]);
     if (!row) return notFound(res, 'Supplier');
     return success(res, row);
   } catch (err) {
@@ -38,6 +40,7 @@ router.get('/:id', async (req, res) => {
 
 router.post('/', async (req, res) => {
   try {
+    const userId = req.user?.userId ?? 1;
     const { name, code, contact, address } = req.body || {};
     if (!name || !String(name).trim()) return validationError(res, 'name is required');
     if (!code || !String(code).trim()) return validationError(res, 'code is required');
@@ -45,8 +48,8 @@ router.post('/', async (req, res) => {
     if (contact != null && String(contact).trim() && !contactVal) return validationError(res, 'Please enter a valid Indian mobile number');
     const db = await getDbAsync();
     db.run(
-      'INSERT INTO suppliers (name, code, contact, address, updated_at) VALUES (?, ?, ?, ?, datetime("now"))',
-      [name.trim(), code.trim(), contactVal ?? null, address?.trim() ?? null]
+      'INSERT INTO suppliers (name, code, contact, address, user_id, updated_at) VALUES (?, ?, ?, ?, ?, datetime("now"))',
+      [name.trim(), code.trim(), contactVal ?? null, address?.trim() ?? null, userId]
     );
     const id = getLastId(db);
     saveDb();
@@ -60,11 +63,12 @@ router.post('/', async (req, res) => {
 
 router.put('/:id', async (req, res) => {
   try {
+    const userId = req.user?.userId ?? 1;
     const id = parseInt(req.params.id, 10);
     if (Number.isNaN(id)) return validationError(res, 'Invalid supplier id');
     const { name, code, contact, address } = req.body || {};
     const db = await getDbAsync();
-    const existing = queryOne(db, 'SELECT * FROM suppliers WHERE id = ?', [id]);
+    const existing = queryOne(db, 'SELECT * FROM suppliers WHERE id = ? AND user_id = ?', [id, userId]);
     if (!existing) return notFound(res, 'Supplier');
     const n = (name != null && String(name).trim()) ? name.trim() : existing.name;
     const c = (code != null && String(code).trim()) ? code.trim() : existing.code;
@@ -78,7 +82,7 @@ router.put('/:id', async (req, res) => {
       }
     }
     const a = address !== undefined ? (address?.trim() || null) : existing.address;
-    db.run('UPDATE suppliers SET name=?, code=?, contact=?, address=?, updated_at=datetime("now") WHERE id=?', [n, c, ct, a, id]);
+    db.run('UPDATE suppliers SET name=?, code=?, contact=?, address=?, updated_at=datetime("now") WHERE id=? AND user_id=?', [n, c, ct, a, id, userId]);
     saveDb();
     const row = queryOne(db, 'SELECT * FROM suppliers WHERE id = ?', [id]);
     return success(res, row);
@@ -90,13 +94,14 @@ router.put('/:id', async (req, res) => {
 
 router.delete('/:id', async (req, res) => {
   try {
+    const userId = req.user?.userId ?? 1;
     const id = parseInt(req.params.id, 10);
     if (Number.isNaN(id)) return validationError(res, 'Invalid supplier id');
     const db = await getDbAsync();
-    const existing = queryOne(db, 'SELECT id FROM suppliers WHERE id = ?', [id]);
+    const existing = queryOne(db, 'SELECT id FROM suppliers WHERE id = ? AND user_id = ?', [id, userId]);
     if (!existing) return notFound(res, 'Supplier');
-    db.run('UPDATE receipt_documents SET supplier_id = NULL WHERE supplier_id = ?', [id]);
-    db.run('DELETE FROM suppliers WHERE id = ?', [id]);
+    db.run('UPDATE receipt_documents SET supplier_id = NULL WHERE supplier_id = ? AND user_id = ?', [id, userId]);
+    db.run('DELETE FROM suppliers WHERE id = ? AND user_id = ?', [id, userId]);
     saveDb();
     return success(res, { deleted: id });
   } catch (err) {
